@@ -1,0 +1,35 @@
+[
+  {
+    "city": "Almaty",
+    "regions": [
+      {
+        "name": "Bostandyk",
+        "schools": [
+          {"id": "AL-BOS-001","name":"School №1"},
+          {"id": "AL-BOS-056","name":"School №56"},
+          {"id": "AL-BOS-140","name":"School №140"}
+        ]
+      },
+      {
+        "name": "Auezov",
+        "schools": [
+          {"id":"AL-AUE-023","name":"School №23"},
+          {"id":"AL-AUE-128","name":"School №128"}
+        ]
+      }
+    ]
+  },
+  {
+    "city": "Nur-Sultan",
+    "regions": [
+      {
+        "name": "Yesil",
+        "schools": [
+          {"id":"NS-YES-027","name":"School №27"},
+          {"id":"NS-YES-088","name":"School №88"}
+        ]
+      }
+    ]
+  }
+]
+
