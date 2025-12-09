@@ -1,10 +1,21 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25A362" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="Attendance" representedClassName="Attendance" syncable="YES" codeGenerationType="class">
+        <attribute name="aboutMe" optional="YES" attributeType="String"/>
+        <attribute name="achievements" optional="YES" attributeType="Transformable" customClassName="NSArray"/>
+        <attribute name="birthDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="certificates" optional="YES" attributeType="Transformable" customClassName="NSArray"/>
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="education" optional="YES" attributeType="String"/>
+        <attribute name="experience" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="note" optional="YES" attributeType="String"/>
+        <attribute name="phone" optional="YES" attributeType="String"/>
+        <attribute name="profilePhoto" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
+        <attribute name="skills" optional="YES" attributeType="String"/>
+        <attribute name="socialLinks" optional="YES" attributeType="Transformable" customClassName="NSDictionary"/>
         <attribute name="status" optional="YES" attributeType="String"/>
+        <attribute name="subject" optional="YES" attributeType="String"/>
         <relationship name="student" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Student" inverseName="attendanceRecords" inverseEntity="Student"/>
     </entity>
     <entity name="ClassRoom" representedClassName="ClassRoom" syncable="YES" codeGenerationType="class">
@@ -46,13 +57,23 @@
         <attribute name="passwordHash" optional="YES" attributeType="String"/>
     </entity>
     <entity name="Teacher" representedClassName="Teacher" syncable="YES" codeGenerationType="class">
+        <attribute name="aboutMe" optional="YES" attributeType="String"/>
+        <attribute name="achievements" optional="YES" attributeType="Transformable"/>
+        <attribute name="certificates" optional="YES" attributeType="Transformable"/>
         <attribute name="city" optional="YES" attributeType="String"/>
+        <attribute name="education" optional="YES" attributeType="String"/>
         <attribute name="email" optional="YES" attributeType="String"/>
-        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="experience" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="passwordHash" optional="YES" attributeType="String"/>
+        <attribute name="phone" optional="YES" attributeType="String" minValueString="0"/>
+        <attribute name="profilePhoto" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
         <attribute name="region" optional="YES" attributeType="String"/>
         <attribute name="schoolID" optional="YES" attributeType="String"/>
+        <attribute name="skills" optional="YES" attributeType="String"/>
+        <attribute name="socialLinks" optional="YES" attributeType="Transformable"/>
+        <attribute name="subject" optional="YES" attributeType="String"/>
         <relationship name="classes" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ClassRoom" inverseName="teacher" inverseEntity="ClassRoom"/>
         <relationship name="school" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="School" inverseName="teachers" inverseEntity="School"/>
     </entity>

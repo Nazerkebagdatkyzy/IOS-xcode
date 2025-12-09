@@ -19,10 +19,13 @@ struct AdminDashboardView: View {
                     .font(.title2).bold()
 
                 // School statistics button
-                NavigationLink(destination: SchoolStatisticsView(school: fetchSchool())) {
-                    dashboardButton(icon: "chart.bar.fill", title: "Мектеп статистикасы")
+                NavigationLink {
+                    if let school = admin.school {
+                        SchoolStatisticsView(school: school)
+                    }
+                } label: {
+                    dashboardButton(icon: "chart.bar.doc.horizontal", title: "Мектеп статистикасы")
                 }
-
 
                 // ---- Сыныптар ----
                 NavigationLink(destination: AdminClassListView()) {

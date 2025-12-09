@@ -63,6 +63,21 @@ struct TeacherDashboardView: View {
 
                     }
                     .padding(.horizontal)
+                    
+                    // Profile Edit Button
+                    NavigationLink {
+                        TeacherProfileEditView(teacher: teacher)
+                    } label: {
+                        Text("Профильді өзгерту")
+                            .font(.headline)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                    }
+                    .padding(.horizontal)
+
 
                     // Classes List
                     VStack(spacing: 12) {

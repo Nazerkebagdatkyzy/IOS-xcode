@@ -17,16 +17,19 @@ struct AdminTeacherListView: View {
     var body: some View {
         List {
             ForEach(teachers) { teacher in
-                NavigationLink(destination: AdminTeacherDetailView(teacher: teacher)) {
+                NavigationLink {
+                    AdminTeacherDetailView(teacher: teacher)
+                } label: {
                     VStack(alignment: .leading) {
-                        Text(teacher.name ?? "Аты жоқ")
+                        Text(teacher.safeName)
                             .font(.headline)
 
-                        Text(teacher.email ?? "")
+                        Text(teacher.safeEmail)
                             .font(.subheadline)
                             .foregroundColor(.gray)
                     }
                 }
+
             }
         }
         .navigationTitle("Мұғалімдер")
