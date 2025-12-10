@@ -115,69 +115,74 @@ struct ClassStatisticsView: View {
     // ======================================================
 
     private func computeStats() {
-        let students: [Student] = {
-            if let set = classRoom.students as? Set<Student> {
-                return Array(set)
-            }
-            return []
-        }()
+        // ---- 1. Сыныптағы студенттер ----
+        let students: [Student] = (classRoom.students as? Set<Student>)?.sorted {
+            $0.studentNumber < $1.studentNumber
+        } ?? []
 
+        // ---- 2. Attendance жазбаларын жинaу ----
         let req: NSFetchRequest<Attendance> = Attendance.fetchRequest()
         req.predicate = NSPredicate(format: "classRoom == %@", classRoom)
 
         do {
             let all = try viewContext.fetch(req)
 
-            // ----- Күндер жинау -----
-            var daysSet = Set<Date>()
-            for a in all {
-                daysSet.insert(Calendar.current.startOfDay(for: a.date ?? Date()))
-            }
-            let totalDays = daysSet.count
+            // ---- 3. Күндерді анықтау ----
+            let days = Array(
+                Set(all.compactMap { Calendar.current.startOfDay(for: $0.date ?? Date()) })
+            ).sorted()
 
-            // ----- Күндік summary -----
-            var dayCountDict: [Date: Int] = [:]
-            for day in daysSet { dayCountDict[day] = 0 }
+            let totalDays = days.count
+            let studentCount = students.count
 
-            for a in all {
-                let key = Calendar.current.startOfDay(for: a.date ?? Date())
-                if a.isPresent {
-                    dayCountDict[key, default: 0] += 1
-                }
+            // Егер күн жоқ → статистика жоқ
+            guard totalDays > 0, studentCount > 0 else {
+                classPercent = 0
+                studentStats = []
+                dailySummary = []
+                return
             }
 
-            dailySummary = dayCountDict
-                .map { ($0.key, $0.value) }
-                .sorted { $0.0 < $1.0 }
+            // ---- 4. Күндер бойынша (dailySummary) ----
+            var dailyDict: [(Date, Int)] = []
 
-            // ----- Оқушы бойынша есеп -----
+            for day in days {
+                // сол күндегі "present" саны
+                let count = all.filter {
+                    Calendar.current.startOfDay(for: $0.date ?? Date()) == day && $0.isPresent
+                }.count
+
+                dailyDict.append((day, count))
+            }
+
+            dailySummary = dailyDict
+
+            // ---- 5. Оқушы бойынша статистика ----
             var stats: [(Student, Int, Int, Double)] = []
-            var presentTotal = 0
+            var totalPresent = 0
 
             for st in students {
+                // Берілген студенттің қатысу саны
                 let presentCount = all.filter { $0.student == st && $0.isPresent }.count
-                presentTotal += presentCount
+                totalPresent += presentCount
 
-                let percent = totalDays > 0
-                    ? (Double(presentCount) / Double(totalDays)) * 100
-                    : 0
+                // Пайыздық көрсеткіш
+                let percent = (Double(presentCount) / Double(totalDays)) * 100
 
                 stats.append((st, presentCount, totalDays, percent))
             }
 
-            // ----- Сыныптың орташа пайызы -----
-            let classPct =
-                (totalDays == 0 || students.count == 0)
-                ? 0
-                : (Double(presentTotal) / Double(totalDays * students.count)) * 100
-
             studentStats = stats.sorted { $0.3 > $1.3 }
-            classPercent = classPct
+
+            // ---- 6. Сыныптың орташа пайызы ----
+            classPercent = Double(totalPresent) /
+                           Double(totalDays * studentCount) * 100
 
         } catch {
-            print("⚠️ ERROR:", error)
+            print("⚠️ ERROR:", error.localizedDescription)
         }
     }
+
 
     // ======================================================
     // MARK: - Көмекші функциялар
