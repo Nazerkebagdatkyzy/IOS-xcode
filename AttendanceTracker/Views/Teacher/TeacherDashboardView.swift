@@ -1,8 +1,3 @@
-//
-//  TeacherDashboardView.swift
-//  AttendanceTracker
-//
-
 import SwiftUI
 import CoreData
 
