@@ -6,6 +6,20 @@ struct AdminStudentDetailView: View {
     @ObservedObject var student: Student
     @Environment(\.managedObjectContext) private var viewContext
 
+    // 🔠 Инициалдарды бөлу
+    private var initials: String {
+        let name = (student.name ?? "").split(separator: " ")
+        
+        if name.count >= 2 {
+            let first = name[0].first ?? "-"
+            let second = name[1].first ?? "-"
+            return "\(first)\(second)".uppercased()
+        } else if let first = name.first?.first {
+            return "\(first)".uppercased()
+        }
+        return "?"
+    }
+
     var body: some View {
 
         ZStack {
@@ -25,20 +39,20 @@ struct AdminStudentDetailView: View {
 
                 VStack(spacing: 28) {
 
-                    // 🔹 Үлкен жасыл студент иконкасы
+                    // 🔹 ИНИЦИАЛЫ БАР АВАТАР
                     ZStack {
-                        RoundedRectangle(cornerRadius: 20)
+                        RoundedRectangle(cornerRadius: 22)
                             .fill(Color(#colorLiteral(red: 0.20, green: 0.50, blue: 0.40, alpha: 1)))
-                            .frame(width: 110, height: 110)
+                            .frame(width: 120, height: 120)
                             .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
 
-                        Image(systemName: "person.fill")
+                        Text(initials)
+                            .font(.system(size: 46, weight: .bold))
                             .foregroundColor(.white)
-                            .font(.system(size: 50, weight: .bold))
                     }
                     .padding(.top, 20)
 
-                    // 🔹 Student Info Card
+                    // 🔹 Студент Ақпарат Картасы
                     VStack(alignment: .leading, spacing: 12) {
 
                         Text(student.name ?? "Аты жоқ")
@@ -76,3 +90,4 @@ struct AdminStudentDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
+
