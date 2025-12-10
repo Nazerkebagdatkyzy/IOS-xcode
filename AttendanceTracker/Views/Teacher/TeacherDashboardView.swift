@@ -77,15 +77,8 @@ struct TeacherDashboardView: View {
                             .foregroundColor(.black)
 
                         Spacer()
-
-                        Button {
-                            showingAddClass = true
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .foregroundColor(.green)
-                                .font(.system(size: 26))
-                        }
                     }
+
                     .padding(.horizontal)
 
                     // ---------------- CLASS CARDS ----------------
@@ -131,8 +124,19 @@ struct TeacherDashboardView: View {
                 .padding(.top)
             }
         }
-        .sheet(isPresented: $showingAddClass) {
-            AddClassView(teacher: teacher)
+    }
+}
+
+struct TeacherDashboardView_Previews: PreviewProvider {
+    static var previews: some View {
+
+        // Жалған teacher объектісін preview үшін ойдан жасаймыз
+        let teacher = Teacher(context: PersistenceController.shared.container.viewContext)
+        teacher.name = "Мұғалім"
+        teacher.schoolID = "school1"
+
+        return NavigationView {
+            TeacherDashboardView(teacher: teacher)
         }
     }
 }
