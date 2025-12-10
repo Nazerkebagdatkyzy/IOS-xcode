@@ -59,11 +59,15 @@ struct SchoolStatisticsView: View {
             return
         }
 
+        print("Табылған сыныптар саны:", classSet.count)
+
         var totals: [(name: String, percent: Double)] = []
         var sum: Double = 0
 
         for c in classSet {
+
             let percent = calculateClassAttendanceUsingFetch(classRoom: c)
+
             totals.append((name: c.name ?? "Сынып", percent: percent))
             sum += percent
         }
@@ -71,6 +75,7 @@ struct SchoolStatisticsView: View {
         averageAttendance = totals.isEmpty ? 0 : (sum / Double(totals.count))
         classRatings = totals.sorted { $0.percent > $1.percent }
     }
+
 
     // ---- Бұл функция relationship атауына тәуелді емес: Attendance-ті fetch арқылы шығарады ----
     private func calculateClassAttendanceUsingFetch(classRoom: ClassRoom) -> Double {

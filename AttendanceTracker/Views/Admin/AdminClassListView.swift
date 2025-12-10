@@ -9,6 +9,7 @@ import CoreData
 
 struct AdminClassListView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \ClassRoom.name, ascending: true)]
     ) private var classes: FetchedResults<ClassRoom>
@@ -29,6 +30,7 @@ struct AdminClassListView: View {
                         }
                     }
                 }
+                .onDelete(perform: deleteClass)   // 👈 Міне! Сырғытып өшіру осында қосылады
             }
             .navigationTitle("Сыныптар")
             .toolbar {
@@ -42,6 +44,21 @@ struct AdminClassListView: View {
             .sheet(isPresented: $showAddClass) {
                 AdminAddClassView()
             }
+        }
+    }
+
+    // 🔥 Сыныпты Core Data-дан өшіру функциясы
+    private func deleteClass(at offsets: IndexSet) {
+        for index in offsets {
+            let classRoom = classes[index]
+            viewContext.delete(classRoom)
+        }
+
+        do {
+            try viewContext.save()
+            print("Сынып сәтті өшірілді")
+        } catch {
+            print("Сыныпты өшіру кезінде қате:", error.localizedDescription)
         }
     }
 }

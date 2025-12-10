@@ -12,14 +12,11 @@ struct AdminClassDetailView: View {
     @ObservedObject var classRoom: ClassRoom
 
     @State private var showAddStudent = false
-    @State private var showingAddStudent = false
 
-    
-
-    // Сыныптағы студенттер
+    // Сыныптағы студенттер (сортталған)
     private var students: [Student] {
         (classRoom.students as? Set<Student>)?
-            .sorted { ($0.studentNumber) < ($1.studentNumber) } ?? []
+            .sorted { $0.studentNumber < $1.studentNumber } ?? []
     }
 
     var body: some View {
@@ -50,14 +47,16 @@ struct AdminClassDetailView: View {
                 } else {
                     ForEach(students) { st in
                         NavigationLink(destination: AdminStudentDetailView(student: st)) {
-                            VStack(alignment: .leading) {
-                                Text(classRoom.name ?? "Сынып")
+                            VStack(alignment: .leading, spacing: 4) {
                                 Text(st.name ?? "Аты жоқ")
+                                    .font(.headline)
                                 Text("№\(st.studentNumber)")
-
+                                    .foregroundColor(.gray)
                             }
                         }
                     }
+                    // 👉 Студентті солға сырғытып өшіру
+                    .onDelete(perform: deleteStudent)
                 }
             }
         }
@@ -65,6 +64,22 @@ struct AdminClassDetailView: View {
         .navigationTitle(classRoom.name ?? "Сынып")
         .sheet(isPresented: $showAddStudent) {
             AdminAddStudentView(classRoom: classRoom)
+        }
+    }
+
+    // 🔥 Студентті Core Data-дан өшіру функциясы
+    private func deleteStudent(at offsets: IndexSet) {
+        let list = students
+        for index in offsets {
+            let student = list[index]
+            viewContext.delete(student)
+        }
+
+        do {
+            try viewContext.save()
+            print("Студент өшірілді")
+        } catch {
+            print("Өшіру қатесі:", error.localizedDescription)
         }
     }
 }
