@@ -42,7 +42,7 @@ struct AdminClassDetailView: View {
                         .padding(.top, 10)
                         .padding(.horizontal)
 
-                    // 🔹 CLASS INFO CARD — жаңа премиум стиль
+                    // 🔹 CLASS INFO CARD
                     HStack(spacing: 16) {
 
                         ZStack {
@@ -91,8 +91,9 @@ struct AdminClassDetailView: View {
                     }
                     .padding(.horizontal)
 
-                    // 🔹 Students List
+                    // 🔹 Students List — жұмыс істейтін NavigationLink
                     if students.isEmpty {
+
                         Text("Студенттер жоқ")
                             .foregroundColor(.gray)
                             .frame(maxWidth: .infinity)
@@ -101,18 +102,16 @@ struct AdminClassDetailView: View {
                             .cornerRadius(16)
                             .shadow(color: .black.opacity(0.07), radius: 5, y: 3)
                             .padding(.horizontal)
+
                     } else {
+
                         ForEach(students) { st in
 
-                            ZStack {
-                                NavigationLink(destination: AdminStudentDetailView(student: st)) {
-                                    EmptyView()
-                                }
-                                .opacity(0)
+                            NavigationLink(destination: AdminStudentDetailView(student: st)) {
 
                                 HStack(spacing: 16) {
 
-                                    // 🟩 Student Avatar Style Icon
+                                    // Аватар стиліндегі иконка
                                     ZStack {
                                         RoundedRectangle(cornerRadius: 12)
                                             .fill(Color(#colorLiteral(red: 0.20, green: 0.50, blue: 0.40, alpha: 1)))
@@ -142,8 +141,8 @@ struct AdminClassDetailView: View {
                                 .background(Color.white)
                                 .cornerRadius(16)
                                 .shadow(color: .black.opacity(0.10), radius: 6, y: 3)
-                                .padding(.horizontal)
                             }
+                            .padding(.horizontal)
                         }
                         .onDelete(perform: deleteStudent)
                     }
@@ -159,9 +158,7 @@ struct AdminClassDetailView: View {
 
     private func deleteStudent(at offsets: IndexSet) {
         let list = students
-        for index in offsets {
-            viewContext.delete(list[index])
-        }
+        for index in offsets { viewContext.delete(list[index]) }
         try? viewContext.save()
     }
 }
