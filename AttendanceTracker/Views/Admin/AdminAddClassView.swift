@@ -24,9 +24,16 @@ struct AdminAddClassView: View {
         NavigationView {
             ZStack {
 
-                // 🌿 Пастель жасыл фон (дәл сенің скрин стилің)
-                Color(#colorLiteral(red: 0.93, green: 0.98, blue: 0.94, alpha: 1))
-                    .ignoresSafeArea()
+                // 🌿 Қою пастель жасыл фон (барлық экрандармен бірдей стиль)
+                LinearGradient(
+                    colors: [
+                        Color(#colorLiteral(red: 0.78, green: 0.92, blue: 0.88, alpha: 1)),
+                        Color(#colorLiteral(red: 0.84, green: 0.95, blue: 0.90, alpha: 1))
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
 
                 ScrollView {
                     VStack(spacing: 26) {
@@ -34,14 +41,14 @@ struct AdminAddClassView: View {
                         // TITLE
                         Text("Сынып қосу")
                             .font(.system(size: 30, weight: .bold))
-                            .foregroundColor(.black.opacity(0.85))
+                            .foregroundColor(.black.opacity(0.88))
                             .padding(.top, 10)
 
                         // CLASS NAME FIELD
                         VStack(alignment: .leading, spacing: 8) {
 
                             Text("Сынып атауы")
-                                .foregroundColor(.black.opacity(0.7))
+                                .foregroundColor(.black.opacity(0.75))
                                 .font(.headline)
 
                             TextField("Мысалы: 5A", text: $name)
@@ -91,22 +98,22 @@ struct AdminAddClassView: View {
                             }
                         }
 
-                        // SAVE BUTTON — сол стиль: жұмсақ жасыл + көлеңке
+                        // SAVE BUTTON — премиум пастель стиль
                         Button(action: saveClass) {
                             Text("Сақтау")
                                 .font(.headline)
-                                .foregroundColor(.black.opacity(0.8))
+                                .foregroundColor(.black.opacity(0.85))
                                 .frame(maxWidth: .infinity)
                                 .padding()
                         }
                         .background(
                             (name.isEmpty || selectedTeacher == nil)
-                            ? Color(#colorLiteral(red: 0.75, green: 0.85, blue: 0.78, alpha: 1))
-                            : Color(#colorLiteral(red: 0.66, green: 0.90, blue: 0.78, alpha: 1))
+                            ? Color(#colorLiteral(red: 0.74, green: 0.84, blue: 0.77, alpha: 1))
+                            : Color(#colorLiteral(red: 0.63, green: 0.89, blue: 0.77, alpha: 1))
                         )
                         .cornerRadius(16)
                         .disabled(name.isEmpty || selectedTeacher == nil)
-                        .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+                        .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
 
                         if showError {
                             Text("Қате: сыныпты сақтау мүмкін болмады")

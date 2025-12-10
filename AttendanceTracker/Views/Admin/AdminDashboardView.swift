@@ -10,9 +10,17 @@ struct AdminDashboardView: View {
         NavigationView {
             ZStack {
                 
-                // 🌿 Сәл қою жасыл фон (өте нәзік түрде)
-                Color(#colorLiteral(red: 0.88, green: 0.96, blue: 0.90, alpha: 1))
-                    .ignoresSafeArea()
+                // 🌿 Қою пастель жасыл фон (premium стиль)
+                LinearGradient(
+                    colors: [
+                        Color(#colorLiteral(red: 0.78, green: 0.92, blue: 0.88, alpha: 1)),
+                        Color(#colorLiteral(red: 0.84, green: 0.95, blue: 0.90, alpha: 1))
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+                
                 
                 ScrollView {
                     VStack(spacing: 22) {
@@ -99,6 +107,6 @@ struct AdminDashboardView: View {
         .padding()
         .background(Color.white)
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.08), radius: 6, y: 3)
+        .shadow(color: .black.opacity(0.1), radius: 6, y: 4)
     }
 }
