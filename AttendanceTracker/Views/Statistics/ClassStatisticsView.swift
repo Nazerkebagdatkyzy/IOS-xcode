@@ -2,8 +2,6 @@
 //  ClassStatisticsView.swift
 //  AttendanceTracker
 //
-//  Created by Nazerke Bagdatkyzy on 05.12.2025.
-//
 
 import SwiftUI
 import CoreData
@@ -111,7 +109,10 @@ struct ClassStatisticsView: View {
         .onAppear(perform: computeStats)
     }
 
-    // --------------- Статистика есептеу ------------------
+
+    // ======================================================
+    // MARK: - Статистика есептеу
+    // ======================================================
 
     private func computeStats() {
         let students: [Student] = {
@@ -121,19 +122,16 @@ struct ClassStatisticsView: View {
             return []
         }()
 
-        // Барлық attendance жазбаларын тарту
         let req: NSFetchRequest<Attendance> = Attendance.fetchRequest()
-        req.predicate = NSPredicate(format: "student.classRoom == %@", classRoom)
+        req.predicate = NSPredicate(format: "classRoom == %@", classRoom)
 
         do {
             let all = try viewContext.fetch(req)
 
-            // ----- Күндерді жинау -----
+            // ----- Күндер жинау -----
             var daysSet = Set<Date>()
             for a in all {
-                if let d = a.date {
-                    daysSet.insert(Calendar.current.startOfDay(for: d))
-                }
+                daysSet.insert(Calendar.current.startOfDay(for: a.date ?? Date()))
             }
             let totalDays = daysSet.count
 
@@ -142,11 +140,9 @@ struct ClassStatisticsView: View {
             for day in daysSet { dayCountDict[day] = 0 }
 
             for a in all {
-                if let d = a.date {
-                    let key = Calendar.current.startOfDay(for: d)
-                    if a.status == "present" {
-                        dayCountDict[key, default: 0] += 1
-                    }
+                let key = Calendar.current.startOfDay(for: a.date ?? Date())
+                if a.isPresent {
+                    dayCountDict[key, default: 0] += 1
                 }
             }
 
@@ -154,13 +150,12 @@ struct ClassStatisticsView: View {
                 .map { ($0.key, $0.value) }
                 .sorted { $0.0 < $1.0 }
 
-
             // ----- Оқушы бойынша есеп -----
             var stats: [(Student, Int, Int, Double)] = []
             var presentTotal = 0
 
             for st in students {
-                let presentCount = all.filter { $0.student == st && $0.status == "present" }.count
+                let presentCount = all.filter { $0.student == st && $0.isPresent }.count
                 presentTotal += presentCount
 
                 let percent = totalDays > 0
@@ -171,7 +166,7 @@ struct ClassStatisticsView: View {
             }
 
             // ----- Сыныптың орташа пайызы -----
-            let classPct: Double =
+            let classPct =
                 (totalDays == 0 || students.count == 0)
                 ? 0
                 : (Double(presentTotal) / Double(totalDays * students.count)) * 100
@@ -180,11 +175,13 @@ struct ClassStatisticsView: View {
             classPercent = classPct
 
         } catch {
-            print("Ошибка: \(error)")
+            print("⚠️ ERROR:", error)
         }
     }
 
-    // --------------- Көмекші функциялар ------------------
+    // ======================================================
+    // MARK: - Көмекші функциялар
+    // ======================================================
 
     private var maxStudents: Int {
         if let set = classRoom.students as? Set<Student> {

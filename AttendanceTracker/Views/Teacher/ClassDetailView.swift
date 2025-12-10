@@ -2,9 +2,6 @@
 //  ClassDetailView.swift
 //  AttendanceTracker
 //
-//  Created by Nazerke Bagdatkyzy on 05.12.2025.
-// ClassAttendanceView.swift
-//
 
 import SwiftUI
 import CoreData
@@ -14,10 +11,13 @@ struct ClassDetailView: View {
     @ObservedObject var classRoom: ClassRoom
 
     @State private var date = Date()
-    @State private var tempStatuses: [NSManagedObjectID: AttendanceStatus] = [:]
+    @State private var tempPresence: [NSManagedObjectID : Bool] = [:]   // ← ТЕК isPresent
     @State private var saving = false
     @State private var showSavedAlert = false
 
+    // ------------------------------
+    // СТУДЕНТТЕР ТІЗІМІ
+    // ------------------------------
     private var students: [Student] {
         if let set = classRoom.students as? Set<Student> {
             return Array(set).sorted { ($0.name ?? "") < ($1.name ?? "") }
@@ -28,69 +28,88 @@ struct ClassDetailView: View {
     var body: some View {
         VStack {
             Form {
-                // ===== Күнді таңдау =====
+                // ------------------------------
+                // КҮН ТАҢДАУ
+                // ------------------------------
                 Section(header: Text("Күн")) {
                     DatePicker("Күнді таңдаңыз", selection: $date, displayedComponents: .date)
+                        .onChange(of: date) { _ in loadExistingForDate() }
                 }
 
-                // ===== Оқушылар тізімі =====
+                // ------------------------------
+                // ОҚУШЫЛАР ТІЗІМІ — КЕЛДІ / КЕЛМЕДІ
+                // ------------------------------
                 Section(header: Text("Сынып: \(classRoom.name ?? "") — Оқушылар")) {
                     ForEach(students, id: \.objectID) { student in
                         HStack {
                             VStack(alignment: .leading) {
                                 Text(student.name ?? "Аты жоқ")
-                                let num = student.studentNumber
-                                Text("№\(num)")
-                                    .font(.subheadline)
+                                Text("№\(student.studentNumber)")
+                                    .font(.caption)
                                     .foregroundColor(.secondary)
-
                             }
 
                             Spacer()
 
-                            // ===== Статус таңдау =====
-                            Picker("", selection: Binding(
-                                get: { tempStatuses[student.objectID] ?? .present },
-                                set: { tempStatuses[student.objectID] = $0 }
-                            )) {
-                                ForEach(AttendanceStatus.allCases, id: \.self) { s in
-                                    Text(s.display).tag(s)
-                                }
+                            // ---------- КЕЛДІ ----------
+                            Button(action: {
+                                tempPresence[student.objectID] = true
+                            }) {
+                                Text("Келді")
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        (tempPresence[student.objectID] ?? true)
+                                        ? Color.green.opacity(0.9)
+                                        : Color.gray.opacity(0.25)
+                                    )
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
                             }
-                            .pickerStyle(MenuPickerStyle())
+
+                            // ---------- КЕЛМЕДІ ----------
+                            Button(action: {
+                                tempPresence[student.objectID] = false
+                            }) {
+                                Text("Келмеді")
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        !(tempPresence[student.objectID] ?? true)
+                                        ? Color.red.opacity(0.9)
+                                        : Color.gray.opacity(0.25)
+                                    )
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
+                            }
                         }
+                        .padding(.vertical, 4)
+
                     }
                 }
 
-                // ===== Түймелер =====
+                // ------------------------------
+                // ТҮЙМЕЛЕР
+                // ------------------------------
                 Section {
-                    Button(action: markAllPresent) {
-                        Text("Барлығын 'Келді' қылу")
-                            .frame(maxWidth: .infinity)
+                    Button("Барлығын КЕЛДІ қылу") {
+                        markAllPresent()
                     }
 
                     Button(action: saveAttendance) {
-                        if saving {
-                            ProgressView().frame(maxWidth: .infinity)
-                        } else {
-                            Text("Сақтау").frame(maxWidth: .infinity)
-                        }
+                        saving
+                        ? AnyView(ProgressView())
+                        : AnyView(Text("Сақтау").bold())
                     }
                     .disabled(saving)
                 }
             }
         }
         .navigationTitle("Attendance — \(classRoom.name ?? "")")
-        .onAppear(perform: loadExistingForDate)
-        .alert(isPresented: $showSavedAlert) {
-            Alert(
-                title: Text("Сақталды"),
-                message: Text("Attendance жазбалары сақталды"),
-                dismissButton: .default(Text("OK"))
-            )
+        .onAppear { loadExistingForDate() }
+        .alert("Сақталды!", isPresented: $showSavedAlert) {
+            Button("OK") {}
         }
-
-        // ===== НАВИГАЦИЯҒА СТАТИСТИКА ҚОСТЫМ =====
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 NavigationLink(destination: ClassStatisticsView(classRoom: classRoom)) {
@@ -101,54 +120,61 @@ struct ClassDetailView: View {
         }
     }
 
-    // ===== Күннің басын анықтау =====
+    // ------------------------------
+    // КҮН БАСТАУЫН АЛУ
+    // ------------------------------
     private func startOfDay(_ d: Date) -> Date {
         Calendar.current.startOfDay(for: d)
     }
 
-    // ===== Бар attendance жүктеу =====
+    // ------------------------------
+    // БЕЛГІЛІ КҮННІҢ ATTENDANCE-ЫН ЖҮКТЕУ
+    // ------------------------------
     private func loadExistingForDate() {
-        tempStatuses = [:]
-        for s in students { tempStatuses[s.objectID] = .present }
+        tempPresence = [:]
 
         let req: NSFetchRequest<Attendance> = Attendance.fetchRequest()
         let dayStart = startOfDay(date)
         let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: dayStart)!
 
         req.predicate = NSPredicate(
-            format: "student.classRoom == %@ AND date >= %@ AND date < %@",
+            format: "classRoom == %@ AND date >= %@ AND date < %@",
             classRoom, dayStart as CVarArg, nextDay as CVarArg
         )
 
         do {
-            let arr = try viewContext.fetch(req)
-            for a in arr {
-                if let stu = a.student {
-                    let id = stu.objectID
-                    if let statusStr = a.status,
-                       let st = AttendanceStatus(rawValue: statusStr) {
-                        tempStatuses[id] = st
+                let list = try viewContext.fetch(req)
+
+                for student in students {
+                    if let att = list.first(where: { $0.student == student }) {
+                        tempPresence[student.objectID] = att.isPresent
+                    } else {
+                        tempPresence[student.objectID] = true   // default = present (OK)
                     }
                 }
-            }
         } catch {
-            print("Failed to fetch existing attendance:", error)
+            print("ERROR loading attendance:", error)
         }
     }
 
-    // ===== Барлығын КЕЛДІ ету =====
+    // ------------------------------
+    // БАРЛЫҒЫН КЕЛДІ ҚЫЛУ
+    // ------------------------------
     private func markAllPresent() {
-        for s in students { tempStatuses[s.objectID] = .present }
+        students.forEach { tempPresence[$0.objectID] = true }
     }
 
-    // ===== Attendance сақтау =====
+    // ------------------------------
+    // ATTENDANCE САҚТАУ
+    // ------------------------------
     private func saveAttendance() {
         saving = true
+
         let dayStart = startOfDay(date)
         let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: dayStart)!
 
         for student in students {
-            guard let status = tempStatuses[student.objectID] else { continue }
+            let isPresent = tempPresence[student.objectID] ?? true
 
             let req: NSFetchRequest<Attendance> = Attendance.fetchRequest()
             req.predicate = NSPredicate(
@@ -161,27 +187,30 @@ struct ClassDetailView: View {
                 let found = try viewContext.fetch(req)
 
                 if let att = found.first {
-                    att.status = status.rawValue
+                    att.isPresent = isPresent
                     att.date = date
                 } else {
                     let att = Attendance(context: viewContext)
                     att.id = UUID()
-                    att.date = date
-                    att.status = status.rawValue
                     att.student = student
+                    att.classRoom = classRoom
+                    att.date = date
+                    att.isPresent = isPresent
                 }
+
             } catch {
-                print("fetch error:", error)
+                print("Fetch error:", error)
             }
         }
 
         do {
             try viewContext.save()
-            showSavedAlert = true
         } catch {
             print("Save error:", error)
         }
 
         saving = false
+        showSavedAlert = true
     }
 }
+

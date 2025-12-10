@@ -2,170 +2,100 @@
 //  SchoolStatisticsView.swift
 //  AttendanceTracker
 //
-
 import SwiftUI
 import CoreData
 
 struct SchoolStatisticsView: View {
-    @Environment(\.managedObjectContext) private var viewContext
     @ObservedObject var school: School
-    
-    @State private var classStats: [(classRoom: ClassRoom, percent: Double)] = []
-    @State private var teacherStats: [(teacher: Teacher, percent: Double)] = []
-    @State private var schoolPercent: Double = 0.0
-    
+    @Environment(\.managedObjectContext) private var viewContext
+
+    @State private var averageAttendance: Double = 0
+    @State private var classRatings: [(name: String, percent: Double)] = []
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                
-                // -------- Мектеп аты --------
                 Text(school.name ?? "Мектеп")
-                
-                    .font(.largeTitle)
-                    .bold()
-                
-                // -------- Жалпы мектеп пайызы --------
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Жалпы қатысу пайызы")
-                        .font(.headline)
-                    
-                    Text(String(format: "%.1f%%", schoolPercent))
-                        .font(.system(size: 40, weight: .bold))
+                    .font(.largeTitle.bold())
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Жалпы қатысу пайызы").font(.headline)
+                    Text("\(averageAttendance, specifier: "%.1f")%")
+                        .font(.system(size: 38, weight: .bold))
                         .foregroundColor(.blue)
                 }
                 .padding()
-                .background(Color(.secondarySystemBackground))
+                .background(Color(.systemGray6))
                 .cornerRadius(12)
-                
-                // -------- Сыныптар рейтингі --------
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Сыныптар бойынша рейтинг")
-                        .font(.headline)
-                    
-                    ForEach(classStats, id: \.classRoom.objectID) { item in
+
+                Text("Сыныптар бойынша рейтинг").font(.headline)
+
+                if classRatings.isEmpty {
+                    Text("Статистика жоқ").foregroundColor(.gray)
+                } else {
+                    ForEach(classRatings, id: \.name) { item in
                         HStack {
-                            Text(item.classRoom.name ?? "Сынып")
+                            Text(item.name)
                             Spacer()
-                            Text(String(format: "%.1f%%", item.percent))
-                                .bold()
+                            Text("\(item.percent, specifier: "%.1f")%").foregroundColor(.blue)
                         }
-                        .padding(10)
-                        .background(Color(.systemBackground))
-                        .cornerRadius(8)
-                    }
-                    
-                    if classStats.isEmpty {
-                        Text("Статистика жоқ")
-                            .foregroundColor(.gray)
+                        .padding(.vertical, 4)
                     }
                 }
-                .padding(.horizontal)
-                
-                // -------- Мұғалімдер статистикасы --------
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Мұғалімдердің орташа статистикасы")
-                        .font(.headline)
-                    
-                    ForEach(teacherStats, id: \.teacher.objectID) { item in
-                        HStack {
-                            Text(item.teacher.name ?? "Мұғалім")
-                            Spacer()
-                            Text(String(format: "%.1f%%", item.percent))
-                                .bold()
-                        }
-                        .padding(10)
-                        .background(Color(.systemBackground))
-                        .cornerRadius(8)
-                    }
-                    
-                    if teacherStats.isEmpty {
-                        Text("Мұғалімдер жоқ немесе статистика бос")
-                            .foregroundColor(.gray)
-                    }
-                }
-                .padding(.horizontal)
-                
+
                 Spacer()
             }
             .padding()
         }
-        .navigationTitle("Мектеп статистикасы")
-        .onAppear(perform: computeSchoolStats)
-    }
-    
-    
-    // =====================================================
-    //               МЕКТЕП СТАТИСТИКА ЕСЕПТЕУ
-    // =====================================================
-    private func computeSchoolStats() {
-        print("SCHOOL:", school.name ?? "??")
-        print("CLASSES COUNT:", (school.classes as? Set<ClassRoom>)?.count ?? 0)
-        
-        for classRoom in (school.classes as? Set<ClassRoom>) ?? [] {
-            print("CLASS:", classRoom.name ?? "??")
-            print("STUDENTS:", (classRoom.students as? Set<Student>)?.count ?? 0)
-            
-            
-            // 1) Мектептегі барлық сыныптар
-            let classes = (school.classes as? Set<ClassRoom>) ?? []
-            
-            var totalPresent = 0
-            var totalPossible = 0
-            
-            var perClass: [(ClassRoom, Double)] = []
-            var perTeacherDict: [Teacher: [Double]] = [:]
-            
-            for classRoom in classes {
-                
-                // ----- класс ішіндегі оқушылар -----
-                let students = (classRoom.students as? Set<Student>) ?? []
-                if students.isEmpty { continue }
-                
-                // ----- Attendance жинау -----
-                let req: NSFetchRequest<Attendance> = Attendance.fetchRequest()
-                req.predicate = NSPredicate(format: "student.classRoom == %@", classRoom)
-                
-                do {
-                    let records = try viewContext.fetch(req)
-                    
-                    // ----- күндер -----
-                    let days = Set(records.compactMap { Calendar.current.startOfDay(for: $0.date ?? Date()) })
-                    let totalDays = days.count
-                    
-                    if totalDays == 0 { continue }
-                    
-                    // ----- оқушы бойынша есеп -----
-                    let classTotalPossible = totalDays * students.count
-                    let classPresent = records.filter { $0.status == "present" }.count
-                    
-                    let classPercent = Double(classPresent) / Double(classTotalPossible) * 100
-                    perClass.append((classRoom, classPercent))
-                    
-                    totalPresent += classPresent
-                    totalPossible += classTotalPossible
-                    
-                    // ----- Мұғалімге қосу -----
-                    if let t = classRoom.teacher {
-                        perTeacherDict[t, default: []].append(classPercent)
-                    }
-                    
-                } catch {
-                    print("Fetch error:", error)
-                }
-            }
-            
-            // ---- Сыныптар сорттау ----
-            classStats = perClass.sorted { $0.1 > $1.1 }
-            
-            // ---- Мектеп жалпы пайыз ----
-            schoolPercent = totalPossible > 0 ? (Double(totalPresent) / Double(totalPossible)) * 100 : 0
-            
-            // ---- Мұғалімдер статистикасы ----
-            teacherStats = perTeacherDict.map { (teacher, values) in
-                let avg = values.reduce(0, +) / Double(values.count)
-                return (teacher, avg)
-            }
-            .sorted { $0.1 > $1.1 }
+        .onAppear {
+            computeSchoolStats()
         }
     }
+
+    private func computeSchoolStats() {
+        guard let classSet = school.classes as? Set<ClassRoom>, !classSet.isEmpty else {
+            averageAttendance = 0
+            classRatings = []
+            return
+        }
+
+        var totals: [(name: String, percent: Double)] = []
+        var sum: Double = 0
+
+        for c in classSet {
+            let percent = calculateClassAttendanceUsingFetch(classRoom: c)
+            totals.append((name: c.name ?? "Сынып", percent: percent))
+            sum += percent
+        }
+
+        averageAttendance = totals.isEmpty ? 0 : (sum / Double(totals.count))
+        classRatings = totals.sorted { $0.percent > $1.percent }
+    }
+
+    // ---- Бұл функция relationship атауына тәуелді емес: Attendance-ті fetch арқылы шығарады ----
+    private func calculateClassAttendanceUsingFetch(classRoom: ClassRoom) -> Double {
+        let req: NSFetchRequest<Attendance> = Attendance.fetchRequest()
+        req.predicate = NSPredicate(format: "classRoom == %@", classRoom)
+
+        do {
+            let items = try viewContext.fetch(req)
+            guard !items.isEmpty else { return 0 }
+
+            var present = 0.0
+            var total = Double(items.count)
+
+            for a in items {
+                if a.isPresent {    // ← сендегі нақты поле аты
+                    present += 1
+                }
+            }
+
+            return (present / total) * 100   // пайыз
+        }
+        catch {
+            print("fetch attendance error:", error)
+            return 0
+        }
+    }
+
 }

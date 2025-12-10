@@ -1,26 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25A362" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="Attendance" representedClassName="Attendance" syncable="YES" codeGenerationType="class">
-        <attribute name="aboutMe" optional="YES" attributeType="String"/>
-        <attribute name="achievements" optional="YES" attributeType="Transformable" customClassName="NSArray"/>
-        <attribute name="birthDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="certificates" optional="YES" attributeType="Transformable" customClassName="NSArray"/>
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="education" optional="YES" attributeType="String"/>
-        <attribute name="experience" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="note" optional="YES" attributeType="String"/>
-        <attribute name="phone" optional="YES" attributeType="String"/>
-        <attribute name="profilePhoto" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
-        <attribute name="skills" optional="YES" attributeType="String"/>
-        <attribute name="socialLinks" optional="YES" attributeType="Transformable" customClassName="NSDictionary"/>
-        <attribute name="status" optional="YES" attributeType="String"/>
-        <attribute name="subject" optional="YES" attributeType="String"/>
+        <attribute name="isPresent" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="percent" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <relationship name="classRoom" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ClassRoom" inverseName="attendance" inverseEntity="ClassRoom"/>
         <relationship name="student" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Student" inverseName="attendanceRecords" inverseEntity="Student"/>
     </entity>
     <entity name="ClassRoom" representedClassName="ClassRoom" syncable="YES" codeGenerationType="class">
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="name" optional="YES" attributeType="String"/>
+        <relationship name="attendance" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Attendance" inverseName="classRoom" inverseEntity="Attendance"/>
         <relationship name="school" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="School" inverseName="classes" inverseEntity="School"/>
         <relationship name="students" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Student" inverseName="classRoom" inverseEntity="Student"/>
         <relationship name="teacher" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Teacher" inverseName="classes" inverseEntity="Teacher"/>
@@ -30,7 +21,7 @@
         <attribute name="id" optional="YES" attributeType="String"/>
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="region" optional="YES" attributeType="String"/>
-        <relationship name="admins" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="SchoolAdmin" inverseName="school" inverseEntity="SchoolAdmin"/>
+        <relationship name="admins" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="SchoolAdmin" inverseName="school" inverseEntity="SchoolAdmin"/>
         <relationship name="classes" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ClassRoom" inverseName="school" inverseEntity="ClassRoom"/>
         <relationship name="teachers" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Teacher" inverseName="school" inverseEntity="Teacher"/>
     </entity>

@@ -10,7 +10,7 @@ struct TeacherRegisterView: View {
 
     @State private var selectedCity = ""
     @State private var selectedRegion = ""
-    @State private var selectedSchool = ""
+    @State private var selectedSchoolID = ""   // ← ID сақталады
 
     @State private var regions: [String] = []
     @State private var schools: [String] = []
@@ -21,43 +21,32 @@ struct TeacherRegisterView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+                
                 Text("Мұғалім тіркелу")
                     .font(.title2).bold()
 
-                // Name
                 TextField("Аты-жөні", text: $name)
-                    .padding()
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(10)
+                    .padding().background(Color(.secondarySystemBackground)).cornerRadius(10)
 
-                // Email
                 TextField("Email", text: $email)
-                    .keyboardType(.emailAddress)
-                    .autocapitalization(.none)
-                    .padding()
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(10)
+                    .padding().background(Color(.secondarySystemBackground)).cornerRadius(10)
 
-                // Password
                 SecureField("Құпия сөз", text: $password)
-                    .padding()
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(10)
+                    .padding().background(Color(.secondarySystemBackground)).cornerRadius(10)
 
-                // City picker
+                // CITY
                 Picker("Қала", selection: $selectedCity) {
                     ForEach(loadCities(), id: \.self) { city in
                         Text(city)
                     }
                 }
                 .onChange(of: selectedCity) {
-                    // Load regions
                     regions = loadRegions(for: selectedCity)
                     selectedRegion = ""
-                    selectedSchool = ""
+                    selectedSchoolID = ""
                 }
 
-                // Region picker
+                // REGION
                 if !regions.isEmpty {
                     Picker("Аймақ", selection: $selectedRegion) {
                         ForEach(regions, id: \.self) { region in
@@ -66,20 +55,20 @@ struct TeacherRegisterView: View {
                     }
                     .onChange(of: selectedRegion) {
                         schools = loadSchools(for: selectedCity, region: selectedRegion)
-                        selectedSchool = ""
+                        selectedSchoolID = ""
                     }
                 }
 
-                // Schools picker
+                // SCHOOL (ID LIST)
                 if !schools.isEmpty {
-                    Picker("Мектеп", selection: $selectedSchool) {
+                    Picker("Мектеп", selection: $selectedSchoolID) {
                         ForEach(schools, id: \.self) { schoolID in
                             Text(schoolName(for: schoolID))
+                                .tag(schoolID)
                         }
                     }
                 }
 
-                // REGISTER BUTTON
                 Button("Тіркелу") {
                     registerTeacher()
                 }
@@ -89,15 +78,8 @@ struct TeacherRegisterView: View {
                 .foregroundColor(.white)
                 .cornerRadius(10)
 
-                if showSuccess {
-                    Text("Мұғалім сәтті тіркелді!")
-                        .foregroundColor(.green)
-                }
-
-                if showError {
-                    Text("Барлық өрісті толық толтырыңыз!")
-                        .foregroundColor(.red)
-                }
+                if showSuccess { Text("Мұғалім сәтті тіркелді!").foregroundColor(.green) }
+                if showError { Text("Барлық өрісті толтырыңыз!").foregroundColor(.red) }
 
                 Spacer()
             }
@@ -105,34 +87,44 @@ struct TeacherRegisterView: View {
         }
     }
 
-    // MARK: - SAVE TEACHER
+    // MARK: - REGISTER TEACHER (correct version)
     func registerTeacher() {
         guard !name.isEmpty,
               !email.isEmpty,
               !password.isEmpty,
-              !selectedSchool.isEmpty else {
+              !selectedSchoolID.isEmpty else {
             showError = true
             return
         }
 
+        // 1️⃣ Мектепті оның ID бойынша Core Data-дан табамыз
+        let req: NSFetchRequest<School> = School.fetchRequest()
+        req.predicate = NSPredicate(format: "id == %@", selectedSchoolID)
+
+        guard let foundSchool = try? viewContext.fetch(req).first else {
+            print("❌ School not found")
+            showError = true
+            return
+        }
+
+        // 2️⃣ Мұғалім жасаймыз
         let teacher = Teacher(context: viewContext)
         teacher.id = UUID()
-        teacher.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        teacher.email = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        // for now store raw (for testing): later replace with hashed string
-        teacher.passwordHash = password.trimmingCharacters(in: .whitespacesAndNewlines)
+        teacher.name = name
+        teacher.email = email
+        teacher.passwordHash = password
         teacher.city = selectedCity
         teacher.region = selectedRegion
-        teacher.schoolID = selectedSchool
-        
+        teacher.schoolID = selectedSchoolID
 
+        // 3️⃣ ЕҢ МАҢЫЗДЫ ЖЕР: RELATIONSHIP
+        teacher.school = foundSchool
 
-        do {
-            try viewContext.save()
-            showSuccess = true
-        } catch {
-            print("Error saving teacher: \(error)")
-            showError = true
-        }
+        // 4️⃣ Сақтау
+        try? viewContext.save()
+        showSuccess = true
+
+        print("🎉 NEW TEACHER CREATED")
+        print("Teacher linked school:", teacher.school?.name ?? "nil")
     }
 }
