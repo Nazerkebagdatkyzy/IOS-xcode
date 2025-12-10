@@ -1,96 +1,106 @@
-//
-//  TeacherDashboard.swift
-//  AttendanceTracker
-//
-//  Created by Nazerke Bagdatkyzy on 05.12.2025.
-//
-
 import SwiftUI
 import CoreData
 
 struct TeacherDashboardView: View {
+
     @Environment(\.managedObjectContext) private var viewContext
-
-    // Login кезінде жіберілетін Teacher объектісі
     @ObservedObject var teacher: Teacher
-
-    // Fetch teacher's classes
     @FetchRequest var classes: FetchedResults<ClassRoom>
+
+    @State private var showingAddClass = false
 
     init(teacher: Teacher) {
         self.teacher = teacher
-
-        // Fetch classes belonging to this teacher only
         _classes = FetchRequest<ClassRoom>(
             sortDescriptors: [NSSortDescriptor(keyPath: \ClassRoom.name, ascending: true)],
             predicate: NSPredicate(format: "teacher == %@", teacher)
         )
     }
 
-    @State private var showingAddClass = false
-
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
 
-                    // Header
-                    VStack(alignment: .leading, spacing: 6) {
+        ZStack {
+            // Ашық түсті фон
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color(#colorLiteral(red: 0.95, green: 1.0, blue: 0.97, alpha: 1)),
+                    Color(#colorLiteral(red: 0.88, green: 1.0, blue: 0.93, alpha: 1))
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 25) {
+
+                    // ---------------- HEADER ----------------
+                    VStack(alignment: .leading, spacing: 4) {
+
                         Text("Қош келдіңіз,")
                             .font(.title3)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.black.opacity(0.6))
 
                         Text(teacher.name ?? "Мұғалім")
-                            .font(.largeTitle)
-                            .bold()
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundColor(.black)
 
                         Text("Мектеп: \(schoolName(for: teacher.schoolID ?? ""))")
+                            .foregroundColor(.black.opacity(0.6))
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
                     }
                     .padding(.horizontal)
 
-                    // Divider
-                    Divider().padding(.horizontal)
+                    Divider()
+                        .padding(.horizontal)
 
-                    // Title row + add button
-                    HStack {
-                        Text("Менің сыныптарым")
-                            .font(.title2)
-                            .bold()
-
-                        Spacer()
-
-                    }
-                    .padding(.horizontal)
-                    
-                    // Profile Edit Button
+                    // ---------------- PROFILE BUTTON ----------------
                     NavigationLink {
                         TeacherProfileEditView(teacher: teacher)
                     } label: {
                         Text("Профильді өзгерту")
                             .font(.headline)
-                            .padding()
                             .frame(maxWidth: .infinity)
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
+                            .padding()
+                            .background(Color(#colorLiteral(red: 0.75, green: 0.95, blue: 0.88, alpha: 1)))
+                            .foregroundColor(.black)
+                            .cornerRadius(16)
+                            .shadow(color: .black.opacity(0.08), radius: 5, x: 0, y: 3)
                     }
                     .padding(.horizontal)
 
+                    // ---------------- TITLE + ADD BUTTON ----------------
+                    HStack {
+                        Text("Менің сыныптарым")
+                            .font(.title2)
+                            .bold()
+                            .foregroundColor(.black)
 
-                    // Classes List
-                    VStack(spacing: 12) {
+                        Spacer()
+
+                        Button {
+                            showingAddClass = true
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundColor(.green)
+                                .font(.system(size: 26))
+                        }
+                    }
+                    .padding(.horizontal)
+
+                    // ---------------- CLASS CARDS ----------------
+                    VStack(spacing: 14) {
                         ForEach(classes) { classRoom in
                             NavigationLink(destination: ClassDetailView(classRoom: classRoom)) {
+
                                 HStack {
                                     VStack(alignment: .leading, spacing: 4) {
+
                                         Text(classRoom.name ?? "Сынып")
                                             .font(.headline)
-                                            .bold()
+                                            .foregroundColor(.black)
 
                                         Text("Оқушылар: \((classRoom.students as? Set<Student>)?.count ?? 0)")
-
                                             .font(.subheadline)
                                             .foregroundColor(.gray)
                                     }
@@ -100,10 +110,10 @@ struct TeacherDashboardView: View {
                                     Image(systemName: "chevron.right")
                                         .foregroundColor(.gray)
                                 }
-                                .padding()
-                                .background(Color(.systemBackground))
-                                .cornerRadius(12)
-                                .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 3)
+                                .padding(16)
+                                .background(Color.white)
+                                .cornerRadius(16)
+                                .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
                             }
                         }
 
@@ -111,6 +121,7 @@ struct TeacherDashboardView: View {
                             Text("Әзірге сыныптар жоқ")
                                 .foregroundColor(.gray)
                                 .italic()
+                                .padding(.top, 10)
                         }
                     }
                     .padding(.horizontal)
@@ -119,11 +130,9 @@ struct TeacherDashboardView: View {
                 }
                 .padding(.top)
             }
-            .navigationBarHidden(true)
         }
         .sheet(isPresented: $showingAddClass) {
             AddClassView(teacher: teacher)
         }
     }
 }
-
