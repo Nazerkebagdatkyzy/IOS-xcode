@@ -1,275 +1,315 @@
 //
 //  TeacherProfileEditView.swift
 //
+
 import SwiftUI
 import PhotosUI
 import CoreData
 import UIKit
 
 struct TeacherProfileEditView: View {
+
     @ObservedObject var teacher: Teacher
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) private var dismiss
 
     // Photo picker
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var avatarImage: UIImage?
 
-    // Local editable copies (so UI is snappy)
+    // Editable fields
     @State private var aboutText = ""
     @State private var educationText = ""
     @State private var experienceValue: Int16 = 0
     @State private var skillsTags: [String] = []
     @State private var certificates: [String] = []
     @State private var socialLinks: [String] = []
-
-    // Achievements: array of dictionaries: ["title": String, "photo": Data?]
     @State private var achievementsArray: [[String: Any]] = []
 
-    // PDF sheet
+    // PDF
     @State private var showShare = false
     @State private var generatedPDFURL: URL?
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 18) {
-                // Avatar
-                VStack {
-                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                        if let img = avatarImage {
-                            Image(uiImage: img)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 120, height: 120)
-                                .clipShape(Circle())
-                                .shadow(radius: 6)
-                        } else if let data = teacher.profilePhoto, let img = UIImage(data: data) {
-                            Image(uiImage: img)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 120, height: 120)
-                                .clipShape(Circle())
-                                .shadow(radius: 6)
-                        } else {
-                            Circle()
-                                .fill(Color.gray.opacity(0.12))
-                                .frame(width: 120, height: 120)
-                                .overlay(Text(initials(of: teacher.name ?? "")))
-                                .shadow(radius: 6)
+
+        ZStack {
+            // Background
+            LinearGradient(
+                colors: [
+                    Color(#colorLiteral(red: 0.93, green: 1.0, blue: 0.96, alpha: 1)),
+                    Color(#colorLiteral(red: 0.86, green: 1.0, blue: 0.93, alpha: 1))
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            ScrollView {
+                VStack(spacing: 22) {
+
+                    // ----------------- AVATAR -----------------
+                    VStack(spacing: 8) {
+                        PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                            ZStack {
+                                if let img = avatarImage {
+                                    Image(uiImage: img)
+                                        .resizable()
+                                        .scaledToFill()
+                                } else if let data = teacher.profilePhoto, let img = UIImage(data: data) {
+                                    Image(uiImage: img)
+                                        .resizable()
+                                        .scaledToFill()
+                                } else {
+                                    Image(systemName: "person.circle.fill")
+                                        .resizable()
+                                        .foregroundColor(.gray.opacity(0.5))
+                                }
+                            }
+                            .frame(width: 120, height: 120)
+                            .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.2), radius: 6)
+                        }
+                        .onChange(of: selectedPhoto) { newItem in
+                            Task { @MainActor in
+                                if let item = newItem,
+                                   let data = try? await item.loadTransferable(type: Data.self) {
+                                    teacher.profilePhoto = data
+                                    avatarImage = UIImage(data: data)
+                                }
+                            }
+                        }
+
+                        Text(teacher.name ?? "Аты белгісіз")
+                            .font(.title2)
+                            .bold()
+
+                        Text(teacher.email ?? "Email жоқ")
+                            .foregroundColor(.gray)
+                    }
+
+                    // ----------------- ABOUT -----------------
+                    SectionCard(title: "Өзі туралы") {
+                        TextEditor(text: $aboutText)
+                            .frame(height: 130)
+                            .padding(10)
+                            .background(Color.white)
+                            .cornerRadius(12)
+                    }
+
+                    // ----------------- EDUCATION & EXPERIENCE -----------------
+                    SectionCard(title: "Білімі және өтілі") {
+
+                        VStack(alignment: .leading, spacing: 14) {
+
+                            TextField("Білімі", text: $educationText)
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(12)
+
+                            HStack {
+                                Text("Өтілі: \(experienceValue) жыл")
+                                Spacer()
+                                Stepper("", value: $experienceValue, in: 0...50)
+                            }
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(12)
                         }
                     }
-                    .onChange(of: selectedPhoto) { newItem in
-                        Task { @MainActor in
-                            if let item = newItem,
-                               let data = try? await item.loadTransferable(type: Data.self) {
-                                teacher.profilePhoto = data
-                                avatarImage = UIImage(data: data)
+
+                    // ----------------- SKILLS -----------------
+                    SectionCard(title: "Дағдылары") {
+                        TagsInputView(tags: $skillsTags)
+                    }
+
+                    // ----------------- ACHIEVEMENTS -----------------
+                    SectionCard(title: "Марапаттар") {
+                        VStack(alignment: .leading, spacing: 10) {
+
+                            NavigationLink("Басқару") {
+                                AchievementsEditorView(items: $achievementsArray)
+                                    .environment(\.managedObjectContext, viewContext)
+                            }
+
+                            if achievementsArray.isEmpty {
+                                Text("Мәлімет жоқ")
+                                    .foregroundColor(.gray)
+                            } else {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 10) {
+                                        ForEach(achievementsArray.indices, id: \.self) { idx in
+                                            VStack {
+                                                if let d = achievementsArray[idx]["photo"] as? Data,
+                                                   let img = UIImage(data: d) {
+                                                    Image(uiImage: img)
+                                                        .resizable()
+                                                        .scaledToFill()
+                                                        .frame(width: 80, height: 80)
+                                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                                }
+                                                Text(achievementsArray[idx]["title"] as? String ?? "")
+                                                    .font(.caption)
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
-                    .padding(.bottom, 6)
-                }
 
-                // Name + Email (read-only)
-                VStack(spacing: 4) {
-                    Text(teacher.name ?? "Аты белгісіз")
-                        .font(.title2)
-                        .bold()
-                    Text(teacher.email ?? "Email жоқ")
-                        .foregroundColor(.gray)
-                }
+                    // ----------------- CERTIFICATES -----------------
+                    SectionCard(title: "Сертификаттар") {
+                        VStack(alignment: .leading, spacing: 10) {
 
-                // About
-                VStack(alignment: .leading) {
-                    Text("Өзі туралы").font(.headline)
-                    TextEditor(text: $aboutText)
-                        .frame(minHeight: 120)
-                        .padding(8)
-                        .background(Color(uiColor: .secondarySystemBackground))
-                        .cornerRadius(10)
-                }.padding(.horizontal)
+                            NavigationLink("Басқару") {
+                                EditableListView(title: "Сертификаттар", items: $certificates)
+                            }
 
-                // Education + Experience + Skills tags
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Білімі").font(.headline)
-                    TextField("Білімі", text: $educationText)
-                        .textFieldStyle(.roundedBorder)
-
-                    HStack {
-                        Text("Өтілі: \(experienceValue) жыл").font(.headline)
-                        Spacer()
-                    }
-                    Stepper("", value: $experienceValue, in: 0...50)
-
-                    Text("Дағдылары").font(.headline)
-                    TagsInputView(tags: $skillsTags)
-                }
-                .padding(.horizontal)
-
-                // Achievements editor
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text("Марапаттар").font(.headline)
-                        Spacer()
-                        NavigationLink("Басқару") {
-                            AchievementsEditorView(items: $achievementsArray)
-                                .environment(\.managedObjectContext, viewContext)
-                        }
-                    }
-
-                    if achievementsArray.isEmpty {
-                        Text("Мәлімет жоқ").foregroundColor(.gray)
-                    } else {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing:10) {
-                                ForEach(achievementsArray.indices, id: \.self) { idx in
-                                    VStack {
-                                        if let d = achievementsArray[idx]["photo"] as? Data, let img = UIImage(data: d) {
-                                            Image(uiImage: img)
-                                                .resizable()
-                                                .scaledToFill()
-                                                .frame(width: 86, height: 86)
-                                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        } else {
-                                            Rectangle()
-                                                .fill(Color.gray.opacity(0.1))
-                                                .frame(width: 86, height: 86)
-                                                .cornerRadius(8)
-                                        }
-                                        Text(achievementsArray[idx]["title"] as? String ?? "")
-                                            .font(.caption)
-                                            .frame(maxWidth: 86)
-                                            .multilineTextAlignment(.center)
-                                    }
+                            if certificates.isEmpty {
+                                Text("Мәлімет жоқ").foregroundColor(.gray)
+                            } else {
+                                ForEach(certificates, id: \.self) { c in
+                                    Text("• \(c)")
                                 }
-                            }.padding(.vertical, 6)
+                            }
                         }
                     }
-                }
-                .padding(.horizontal)
 
-                // Certificates
-                VStack(alignment:.leading) {
-                    HStack {
-                        Text("Сертификаттар").font(.headline)
-                        Spacer()
-                        NavigationLink("Басқару") {
-                            EditableListView(title: "Сертификаттар", items: $certificates)
+                    // ----------------- SOCIAL LINKS -----------------
+                    SectionCard(title: "Әлеуметтік желілер") {
+                        VStack(alignment: .leading, spacing: 10) {
+
+                            NavigationLink("Басқару") {
+                                EditableListView(title: "Әлеуметтік желілер", items: $socialLinks)
+                            }
+
+                            if socialLinks.isEmpty {
+                                Text("Мәлімет жоқ").foregroundColor(.gray)
+                            } else {
+                                ForEach(socialLinks, id: \.self) { s in
+                                    Text(s).foregroundColor(.blue)
+                                }
+                            }
                         }
                     }
-                    if certificates.isEmpty { Text("Мәлімет жоқ").foregroundColor(.gray) }
-                    else {
-                        ForEach(certificates, id:\.self) { c in
-                            Text("• \(c)").lineLimit(1)
+
+                    // ----------------- BUTTONS -----------------
+                    HStack(spacing: 16) {
+
+                        Button {
+                            saveProfile()
+                        } label: {
+                            Text("Сақтау")
+                                .bold()
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.green.opacity(0.75))
+                                .foregroundColor(.white)
+                                .cornerRadius(14)
+                        }
+
+                        Button {
+                            generatePDFandShare()
+                        } label: {
+                            Text("PDF")
+                                .bold()
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.white)
+                                .foregroundColor(.black)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(Color.gray.opacity(0.3))
+                                )
                         }
                     }
-                }
-                .padding(.horizontal)
+                    .padding(.horizontal)
 
-                // Social links
-                VStack(alignment:.leading) {
-                    HStack {
-                        Text("Әлеуметтік желілер").font(.headline)
-                        Spacer()
-                        NavigationLink("Басқару") {
-                            EditableListView(title:"Әлеуметтік желілер", items: $socialLinks)
-                        }
-                    }
-                    if socialLinks.isEmpty { Text("Мәлімет жоқ").foregroundColor(.gray) }
-                    else {
-                        ForEach(socialLinks, id:\.self) { s in
-                            Text(s).lineLimit(1).foregroundColor(.blue)
-                        }
+                }
+                .padding(.top, 22)
+                .sheet(isPresented: $showShare) {
+                    if let url = generatedPDFURL {
+                        ShareSheet(activityItems: [url])
                     }
                 }
-                .padding(.horizontal)
-
-                // Buttons: Save, Generate PDF
-                HStack(spacing: 12) {
-                    Button("Сақтау") {
-                        saveProfile()
-                    }
-                    .buttonStyle(.borderedProminent)
-
-                    Button("PDF жасау") {
-                        generatePDFandShare()
-                    }
-                    .buttonStyle(.bordered)
-                }
-                .padding()
-
-                Spacer()
-            }
-            .padding(.top)
-            .onAppear { loadInitial() }
-            .sheet(isPresented: $showShare) {
-                if let url = generatedPDFURL {
-                    ShareSheet(activityItems: [url])
-                }
+                .onAppear { loadInitial() }
             }
         }
         .navigationTitle("Профильді өзгерту")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
-    // MARK: - Load initial values from teacher
+    // MARK: - Load initial
     func loadInitial() {
         aboutText = teacher.aboutMe ?? ""
         educationText = teacher.education ?? ""
         experienceValue = teacher.experience
-        // skills stored as comma separated string in CoreData
-        skillsTags = (teacher.skills ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
-        certificates = (teacher.certificates as? [String]) ?? []
-        socialLinks = (teacher.socialLinks as? [String]) ?? []
-        // achievements - stored as NSArray of NSDictionary-like objects
-        if let arr = teacher.achievements as? [[String: Any]] {
-            achievementsArray = arr
-        } else {
-            achievementsArray = []
-        }
+        skillsTags = (teacher.skills ?? "")
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+        certificates = teacher.certificates as? [String] ?? []
+        socialLinks = teacher.socialLinks as? [String] ?? []
+        achievementsArray = teacher.achievements as? [[String: Any]] ?? []
         if let data = teacher.profilePhoto { avatarImage = UIImage(data: data) }
     }
 
-    // MARK: - Save back to CoreData
+    // MARK: - Save
     func saveProfile() {
         teacher.aboutMe = aboutText
         teacher.education = educationText
         teacher.experience = experienceValue
         teacher.skills = skillsTags.joined(separator: ", ")
-        // certificates & socialLinks as NSArray
         teacher.certificates = certificates as NSArray
         teacher.socialLinks = socialLinks as NSArray
-        // achievementsArray -> NSArray
         teacher.achievements = achievementsArray as NSArray
-        do {
-            try viewContext.save()
-            // dismiss
-            presentationMode.wrappedValue.dismiss()
-        } catch {
-            print("Save error:", error)
-        }
+
+        try? viewContext.save()
+        dismiss()
     }
 
-    // MARK: - PDF Generation
+    // MARK: - PDF
     func generatePDFandShare() {
-        // build simple PDF using PDFExporter helper
         let exporter = PDFExporter()
-        if let url = exporter.exportTeacherResumeToPDF(teacher: teacher,
-                                                       profileImage: avatarImage,
-                                                       about: aboutText,
-                                                       education: educationText,
-                                                       experience: Int(experienceValue),
-                                                       skills: skillsTags,
-                                                       achievements: achievementsArray,
-                                                       certificates: certificates,
-                                                       socialLinks: socialLinks) {
+        if let url = exporter.exportTeacherResumeToPDF(
+            teacher: teacher,
+            profileImage: avatarImage,
+            about: aboutText,
+            education: educationText,
+            experience: Int(experienceValue),
+            skills: skillsTags,
+            achievements: achievementsArray,
+            certificates: certificates,
+            socialLinks: socialLinks
+        ) {
             generatedPDFURL = url
             showShare = true
         }
     }
+}
 
-    // Helpers
-    func initials(of name: String) -> String {
-        let parts = name.split(separator: " ")
-        return parts.prefix(2).compactMap { $0.first }.map(String.init).joined()
+// ------------------- SECTION CARD COMPONENT -------------------
+struct SectionCard<Content: View>: View {
+
+    var title: String
+    var content: () -> Content
+
+    var body: some View {
+
+        VStack(alignment: .leading, spacing: 14) {
+
+            Text(title)
+                .font(.headline)
+                .foregroundColor(.black.opacity(0.85))
+
+            content()
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.white)
+                .shadow(color: .black.opacity(0.06), radius: 12, x: 0, y: 4)
+        )
+        .padding(.horizontal)
     }
 }
