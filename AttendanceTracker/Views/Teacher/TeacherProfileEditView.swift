@@ -20,7 +20,6 @@ struct TeacherProfileEditView: View {
     @State private var showCertificatesEditor = false
     @State private var showSocialLinksEditor = false
 
-
     // Editable fields
     @State private var aboutText = ""
     @State private var educationText = ""
@@ -35,9 +34,7 @@ struct TeacherProfileEditView: View {
     @State private var generatedPDFURL: URL?
 
     var body: some View {
-
         ZStack {
-            // Background
             LinearGradient(
                 colors: [
                     Color(#colorLiteral(red: 0.93, green: 1.0, blue: 0.96, alpha: 1)),
@@ -51,7 +48,6 @@ struct TeacherProfileEditView: View {
             ScrollView {
                 VStack(spacing: 22) {
 
-                    // ----------------- AVATAR -----------------
                     VStack(spacing: 8) {
                         PhotosPicker(selection: $selectedPhoto, matching: .images) {
                             ZStack {
@@ -59,7 +55,8 @@ struct TeacherProfileEditView: View {
                                     Image(uiImage: img)
                                         .resizable()
                                         .scaledToFill()
-                                } else if let data = teacher.profilePhoto, let img = UIImage(data: data) {
+                                } else if let data = teacher.profilePhoto,
+                                          let img = UIImage(data: data) {
                                     Image(uiImage: img)
                                         .resizable()
                                         .scaledToFill()
@@ -91,7 +88,6 @@ struct TeacherProfileEditView: View {
                             .foregroundColor(.gray)
                     }
 
-                    // ----------------- ABOUT -----------------
                     SectionCard(title: "Өзі туралы") {
                         TextEditor(text: $aboutText)
                             .frame(height: 130)
@@ -100,11 +96,8 @@ struct TeacherProfileEditView: View {
                             .cornerRadius(12)
                     }
 
-                    // ----------------- EDUCATION & EXPERIENCE -----------------
                     SectionCard(title: "Білімі және өтілі") {
-
                         VStack(alignment: .leading, spacing: 14) {
-
                             TextField("Білімі", text: $educationText)
                                 .padding()
                                 .background(Color.white)
@@ -121,40 +114,32 @@ struct TeacherProfileEditView: View {
                         }
                     }
 
-                    // ----------------- SKILLS -----------------
                     SectionCard(title: "Дағдылары") {
                         TagsInputView(tags: $skillsTags)
                     }
 
-                    // ----------------- ACHIEVEMENTS -----------------
                     SectionCard(title: "Марапаттар") {
                         VStack(alignment: .leading, spacing: 10) {
 
-                            Button("Басқару") {
-                                showAchievementsEditor = true
-                            }
-                            .foregroundColor(.blue)
-
-                            .sheet(isPresented: $showAchievementsEditor) {
-                                NavigationView {
-                                    AchievementsEditorView(items: $achievementsArray)
-                                        .navigationBarTitle("Марапаттар", displayMode: .inline)
-                                        .toolbar {
-                                            ToolbarItem(placement: .navigationBarLeading) {
-                                                Button {
-                                                    showAchievementsEditor = false
-                                                } label: {
-                                                    Image(systemName: "chevron.backward")
-                                                        .foregroundColor(.blue)
+                            Button("Басқару") { showAchievementsEditor = true }
+                                .foregroundColor(.blue)
+                                .sheet(isPresented: $showAchievementsEditor) {
+                                    NavigationView {
+                                        AchievementsEditorView(items: $achievementsArray)
+                                            .navigationBarTitle("Марапаттар", displayMode: .inline)
+                                            .toolbar {
+                                                ToolbarItem(placement: .navigationBarLeading) {
+                                                    Button { showAchievementsEditor = false } label: {
+                                                        Image(systemName: "chevron.backward")
+                                                            .foregroundColor(.blue)
+                                                    }
                                                 }
                                             }
-                                        }
+                                    }
                                 }
-                            }
 
                             if achievementsArray.isEmpty {
-                                Text("Мәлімет жоқ")
-                                    .foregroundColor(.gray)
+                                Text("Мәлімет жоқ").foregroundColor(.gray)
                             } else {
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 10) {
@@ -178,34 +163,28 @@ struct TeacherProfileEditView: View {
                         }
                     }
 
-                    // ----------------- CERTIFICATES -----------------
                     SectionCard(title: "Сертификаттар") {
                         VStack(alignment: .leading, spacing: 10) {
 
-                            Button("Басқару") {
-                                showCertificatesEditor = true
-                            }
-                            .foregroundColor(.blue)
-                            .sheet(isPresented: $showCertificatesEditor) {
-                                NavigationView {
-                                    EditableListView(title: "Сертификаттар", items: $certificates)
-                                        .navigationBarTitle("Сертификаттар", displayMode: .inline)
-                                        .toolbar {
-                                            ToolbarItem(placement: .navigationBarLeading) {
-                                                Button {
-                                                    showCertificatesEditor = false
-                                                } label: {
-                                                    Image(systemName: "chevron.backward")
-                                                        .foregroundColor(.blue)
+                            Button("Басқару") { showCertificatesEditor = true }
+                                .foregroundColor(.blue)
+                                .sheet(isPresented: $showCertificatesEditor) {
+                                    NavigationView {
+                                        EditableListView(title: "Сертификаттар", items: $certificates)
+                                            .navigationBarTitle("Сертификаттар", displayMode: .inline)
+                                            .toolbar {
+                                                ToolbarItem(placement: .navigationBarLeading) {
+                                                    Button { showCertificatesEditor = false } label: {
+                                                        Image(systemName: "chevron.backward")
+                                                            .foregroundColor(.blue)
+                                                    }
                                                 }
                                             }
-                                        }
+                                    }
                                 }
-                            }
 
                             if certificates.isEmpty {
-                                Text("Мәлімет жоқ")
-                                    .foregroundColor(.gray)
+                                Text("Мәлімет жоқ").foregroundColor(.gray)
                             } else {
                                 ForEach(certificates, id: \.self) { c in
                                     Text("• \(c)")
@@ -214,50 +193,39 @@ struct TeacherProfileEditView: View {
                         }
                     }
 
-
-                    // ----------------- SOCIAL LINKS -----------------
                     SectionCard(title: "Әлеуметтік желілер") {
                         VStack(alignment: .leading, spacing: 10) {
 
-                            Button("Басқару") {
-                                showSocialLinksEditor = true
-                            }
-                            .foregroundColor(.blue)
-                            .sheet(isPresented: $showSocialLinksEditor) {
-                                NavigationView {
-                                    EditableListView(title: "Әлеуметтік желілер", items: $socialLinks)
-                                        .navigationBarTitle("Әлеуметтік желілер", displayMode: .inline)
-                                        .toolbar {
-                                            ToolbarItem(placement: .navigationBarLeading) {
-                                                Button {
-                                                    showSocialLinksEditor = false
-                                                } label: {
-                                                    Image(systemName: "chevron.backward")
-                                                        .foregroundColor(.blue)
+                            Button("Басқару") { showSocialLinksEditor = true }
+                                .foregroundColor(.blue)
+                                .sheet(isPresented: $showSocialLinksEditor) {
+                                    NavigationView {
+                                        EditableListView(title: "Әлеуметтік желілер", items: $socialLinks)
+                                            .navigationBarTitle("Әлеуметтік желілер", displayMode: .inline)
+                                            .toolbar {
+                                                ToolbarItem(placement: .navigationBarLeading) {
+                                                    Button { showSocialLinksEditor = false } label: {
+                                                        Image(systemName: "chevron.backward")
+                                                            .foregroundColor(.blue)
+                                                    }
                                                 }
                                             }
-                                        }
+                                    }
                                 }
-                            }
 
                             if socialLinks.isEmpty {
-                                Text("Мәлімет жоқ")
-                                    .foregroundColor(.gray)
+                                Text("Мәлімет жоқ").foregroundColor(.gray)
                             } else {
                                 ForEach(socialLinks, id: \.self) { s in
-                                    Text(s)
-                                        .foregroundColor(.blue)
+                                    Text(s).foregroundColor(.blue)
                                 }
                             }
                         }
                     }
 
-                    // ----------------- BUTTONS -----------------
                     HStack(spacing: 16) {
 
-                        Button {
-                            saveProfile()
-                        } label: {
+                        Button { saveProfile() } label: {
                             Text("Сақтау")
                                 .bold()
                                 .frame(maxWidth: .infinity)
@@ -267,9 +235,7 @@ struct TeacherProfileEditView: View {
                                 .cornerRadius(14)
                         }
 
-                        Button {
-                            generatePDFandShare()
-                        } label: {
+                        Button { generatePDFandShare() } label: {
                             Text("PDF")
                                 .bold()
                                 .frame(maxWidth: .infinity)
@@ -283,13 +249,10 @@ struct TeacherProfileEditView: View {
                         }
                     }
                     .padding(.horizontal)
-
                 }
                 .padding(.top, 22)
                 .sheet(isPresented: $showShare) {
-                    if let url = generatedPDFURL {
-                        ShareSheet(activityItems: [url])
-                    }
+                    if let url = generatedPDFURL { ShareSheet(activityItems: [url]) }
                 }
                 .onAppear { loadInitial() }
             }
@@ -311,47 +274,39 @@ struct TeacherProfileEditView: View {
 
         achievementsArray = []
         if let arr = teacher.achievements as? [NSDictionary] {
-            for dict in arr {
-                var r: [String: Any] = [:]
+            achievementsArray = arr.compactMap { dict in
+                var result: [String: Any] = [:]
                 for (k, v) in dict {
-                    if let key = k as? String { r[key] = v }
+                    if let key = k as? String { result[key] = v }
                 }
-                achievementsArray.append(r)
+                return result
             }
         } else if let arr = teacher.achievements as? [[String: Any]] {
             achievementsArray = arr
-        } else {
-            achievementsArray = []
         }
 
-        if let data = teacher.profilePhoto { avatarImage = UIImage(data: data) }
+        if let data = teacher.profilePhoto {
+            avatarImage = UIImage(data: data)
+        }
     }
 
     // MARK: - Save
     func saveProfile() {
-        print("→ saveProfile called. achievementsArray count:", achievementsArray.count)
-
         teacher.aboutMe = aboutText
         teacher.education = educationText
         teacher.experience = experienceValue
         teacher.skills = skillsTags.joined(separator: ", ")
         teacher.certificates = certificates as NSArray
         teacher.socialLinks = socialLinks as NSArray
-
-        let convertedAchievements = achievementsArray.map { item in
-            return item as NSDictionary
-        }
-        teacher.achievements = convertedAchievements as NSArray
+        teacher.achievements = achievementsArray.map { $0 as NSDictionary } as NSArray
 
         do {
             try viewContext.save()
-            print("→ viewContext.save() OK. Saved achievements count:", convertedAchievements.count)
             dismiss()
         } catch {
             print("❌ Save error:", error)
         }
     }
-
 
     // MARK: - PDF
     func generatePDFandShare() {
@@ -373,14 +328,11 @@ struct TeacherProfileEditView: View {
     }
 }
 
-// ------------------- SECTION CARD COMPONENT -------------------
 struct SectionCard<Content: View>: View {
-
     var title: String
     var content: () -> Content
 
     var body: some View {
-
         VStack(alignment: .leading, spacing: 14) {
 
             Text(title)
@@ -391,7 +343,7 @@ struct SectionCard<Content: View>: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.ultraThinMaterial) // glass effect
+        .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 8)
         .padding(.horizontal)
