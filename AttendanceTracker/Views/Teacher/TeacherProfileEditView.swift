@@ -16,6 +16,10 @@ struct TeacherProfileEditView: View {
     // Photo picker
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var avatarImage: UIImage?
+    @State private var showAchievementsEditor = false
+    @State private var showCertificatesEditor = false
+    @State private var showSocialLinksEditor = false
+
 
     // Editable fields
     @State private var aboutText = ""
@@ -126,9 +130,26 @@ struct TeacherProfileEditView: View {
                     SectionCard(title: "Марапаттар") {
                         VStack(alignment: .leading, spacing: 10) {
 
-                            NavigationLink("Басқару") {
-                                AchievementsEditorView(items: $achievementsArray)
-                                    .environment(\.managedObjectContext, viewContext)
+                            Button("Басқару") {
+                                showAchievementsEditor = true
+                            }
+                            .foregroundColor(.blue)
+
+                            .sheet(isPresented: $showAchievementsEditor) {
+                                NavigationView {
+                                    AchievementsEditorView(items: $achievementsArray)
+                                        .navigationBarTitle("Марапаттар", displayMode: .inline)
+                                        .toolbar {
+                                            ToolbarItem(placement: .navigationBarLeading) {
+                                                Button {
+                                                    showAchievementsEditor = false
+                                                } label: {
+                                                    Image(systemName: "chevron.backward")
+                                                        .foregroundColor(.blue)
+                                                }
+                                            }
+                                        }
+                                }
                             }
 
                             if achievementsArray.isEmpty {
@@ -161,12 +182,30 @@ struct TeacherProfileEditView: View {
                     SectionCard(title: "Сертификаттар") {
                         VStack(alignment: .leading, spacing: 10) {
 
-                            NavigationLink("Басқару") {
-                                EditableListView(title: "Сертификаттар", items: $certificates)
+                            Button("Басқару") {
+                                showCertificatesEditor = true
+                            }
+                            .foregroundColor(.blue)
+                            .sheet(isPresented: $showCertificatesEditor) {
+                                NavigationView {
+                                    EditableListView(title: "Сертификаттар", items: $certificates)
+                                        .navigationBarTitle("Сертификаттар", displayMode: .inline)
+                                        .toolbar {
+                                            ToolbarItem(placement: .navigationBarLeading) {
+                                                Button {
+                                                    showCertificatesEditor = false
+                                                } label: {
+                                                    Image(systemName: "chevron.backward")
+                                                        .foregroundColor(.blue)
+                                                }
+                                            }
+                                        }
+                                }
                             }
 
                             if certificates.isEmpty {
-                                Text("Мәлімет жоқ").foregroundColor(.gray)
+                                Text("Мәлімет жоқ")
+                                    .foregroundColor(.gray)
                             } else {
                                 ForEach(certificates, id: \.self) { c in
                                     Text("• \(c)")
@@ -175,19 +214,39 @@ struct TeacherProfileEditView: View {
                         }
                     }
 
+
                     // ----------------- SOCIAL LINKS -----------------
                     SectionCard(title: "Әлеуметтік желілер") {
                         VStack(alignment: .leading, spacing: 10) {
 
-                            NavigationLink("Басқару") {
-                                EditableListView(title: "Әлеуметтік желілер", items: $socialLinks)
+                            Button("Басқару") {
+                                showSocialLinksEditor = true
+                            }
+                            .foregroundColor(.blue)
+                            .sheet(isPresented: $showSocialLinksEditor) {
+                                NavigationView {
+                                    EditableListView(title: "Әлеуметтік желілер", items: $socialLinks)
+                                        .navigationBarTitle("Әлеуметтік желілер", displayMode: .inline)
+                                        .toolbar {
+                                            ToolbarItem(placement: .navigationBarLeading) {
+                                                Button {
+                                                    showSocialLinksEditor = false
+                                                } label: {
+                                                    Image(systemName: "chevron.backward")
+                                                        .foregroundColor(.blue)
+                                                }
+                                            }
+                                        }
+                                }
                             }
 
                             if socialLinks.isEmpty {
-                                Text("Мәлімет жоқ").foregroundColor(.gray)
+                                Text("Мәлімет жоқ")
+                                    .foregroundColor(.gray)
                             } else {
                                 ForEach(socialLinks, id: \.self) { s in
-                                    Text(s).foregroundColor(.blue)
+                                    Text(s)
+                                        .foregroundColor(.blue)
                                 }
                             }
                         }
@@ -249,23 +308,50 @@ struct TeacherProfileEditView: View {
             .map { $0.trimmingCharacters(in: .whitespaces) }
         certificates = teacher.certificates as? [String] ?? []
         socialLinks = teacher.socialLinks as? [String] ?? []
-        achievementsArray = teacher.achievements as? [[String: Any]] ?? []
+
+        achievementsArray = []
+        if let arr = teacher.achievements as? [NSDictionary] {
+            for dict in arr {
+                var r: [String: Any] = [:]
+                for (k, v) in dict {
+                    if let key = k as? String { r[key] = v }
+                }
+                achievementsArray.append(r)
+            }
+        } else if let arr = teacher.achievements as? [[String: Any]] {
+            achievementsArray = arr
+        } else {
+            achievementsArray = []
+        }
+
         if let data = teacher.profilePhoto { avatarImage = UIImage(data: data) }
     }
 
     // MARK: - Save
     func saveProfile() {
+        print("→ saveProfile called. achievementsArray count:", achievementsArray.count)
+
         teacher.aboutMe = aboutText
         teacher.education = educationText
         teacher.experience = experienceValue
         teacher.skills = skillsTags.joined(separator: ", ")
         teacher.certificates = certificates as NSArray
         teacher.socialLinks = socialLinks as NSArray
-        teacher.achievements = achievementsArray as NSArray
 
-        try? viewContext.save()
-        dismiss()
+        let convertedAchievements = achievementsArray.map { item in
+            return item as NSDictionary
+        }
+        teacher.achievements = convertedAchievements as NSArray
+
+        do {
+            try viewContext.save()
+            print("→ viewContext.save() OK. Saved achievements count:", convertedAchievements.count)
+            dismiss()
+        } catch {
+            print("❌ Save error:", error)
+        }
     }
+
 
     // MARK: - PDF
     func generatePDFandShare() {
@@ -303,13 +389,13 @@ struct SectionCard<Content: View>: View {
 
             content()
         }
-        .padding(16)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color.white)
-                .shadow(color: .black.opacity(0.06), radius: 12, x: 0, y: 4)
-        )
+        .background(.ultraThinMaterial) // glass effect
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 8)
         .padding(.horizontal)
+        .transition(.opacity.combined(with: .scale))
+        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: title)
     }
 }
