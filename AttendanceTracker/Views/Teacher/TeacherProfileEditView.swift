@@ -86,6 +86,7 @@ struct TeacherProfileEditView: View {
 
                         Text(teacher.email ?? "Email жоқ")
                             .foregroundColor(.gray)
+                        
                     }
 
                     SectionCard(title: "Өзі туралы") {
@@ -299,6 +300,8 @@ struct TeacherProfileEditView: View {
         teacher.certificates = certificates as NSArray
         teacher.socialLinks = socialLinks as NSArray
         teacher.achievements = achievementsArray.map { $0 as NSDictionary } as NSArray
+        print("🟢 SAVE TEACHER ID:", teacher.objectID)
+        print("🟢 SAVE achievements:", teacher.achievements ?? "nil")
 
         do {
             try viewContext.save()
@@ -351,3 +354,4 @@ struct SectionCard<Content: View>: View {
         .animation(.spring(response: 0.35, dampingFraction: 0.75), value: title)
     }
 }
+

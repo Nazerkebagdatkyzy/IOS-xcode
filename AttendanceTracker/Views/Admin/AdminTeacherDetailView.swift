@@ -5,9 +5,11 @@
 
 import SwiftUI
 import Foundation
+import UIKit
 
 // MARK: - Safe access extension
 extension Teacher {
+
     var safeName: String { name ?? "Аты белгісіз" }
     var safeEmail: String { email ?? "Email жоқ" }
     var safeCity: String { city ?? "Белгісіз" }
@@ -18,9 +20,31 @@ extension Teacher {
     var safeAbout: String { aboutMe ?? "Мәлімет толтырылмаған" }
     var safeExperience: String { "\(experience) жыл" }
 
-    var safeAchievements: [String] { achievements as? [String] ?? [] }
-    var safeCertificates: [String] { certificates as? [String] ?? [] }
-    var safeSocialLinks: [String] { socialLinks as? [String] ?? [] }
+    // ✅ МАРАПАТТАР (AchievementsEditorView сақтаған форматпен)
+    var safeAchievementsText: String {
+        guard let arr = achievements as? [[String: Any]] else {
+            return "Мәлімет жоқ"
+        }
+
+        let titles = arr.compactMap { $0["title"] as? String }
+        return titles.isEmpty ? "Мәлімет жоқ" : titles.joined(separator: "\n")
+    }
+
+    // ✅ СЕРТИФИКАТТАР
+    var safeCertificatesText: String {
+        guard let arr = certificates as? [String], !arr.isEmpty else {
+            return "Мәлімет жоқ"
+        }
+        return arr.joined(separator: "\n")
+    }
+
+    // ✅ ӘЛЕУМЕТТІК ЖЕЛІЛЕР
+    var safeSocialLinksText: String {
+        guard let arr = socialLinks as? [String], !arr.isEmpty else {
+            return "Мәлімет жоқ"
+        }
+        return arr.joined(separator: "\n")
+    }
 }
 
 // MARK: - Mint palette
@@ -30,6 +54,7 @@ extension Color {
 }
 
 struct AdminTeacherDetailView: View {
+
     @ObservedObject var teacher: Teacher
 
     var body: some View {
@@ -73,15 +98,29 @@ struct AdminTeacherDetailView: View {
                     ]
                 )
 
-                // MARK: - LONG TEXT CARD (ӨЗІ ТУРАЛЫ)
-                sectionCard(title: "ӨЗІ ТУРАЛЫ", content: teacher.safeAbout)
+                // MARK: - ӨЗІ ТУРАЛЫ
+                sectionCard(
+                    title: "ӨЗІ ТУРАЛЫ",
+                    content: teacher.safeAbout
+                )
 
-                // MARK: - LIST CARDS
-                sectionCard(title: "МАРАПАТТАР", content: teacher.safeAchievements.isEmpty ? "Мәлімет жоқ" : teacher.safeAchievements.joined(separator: "\n"))
+                // MARK: - МАРАПАТТАР
+                sectionCard(
+                    title: "МАРАПАТТАР",
+                    content: teacher.safeAchievementsText
+                )
 
-                sectionCard(title: "СЕРТИФИКАТТАР", content: teacher.safeCertificates.isEmpty ? "Мәлімет жоқ" : teacher.safeCertificates.joined(separator: "\n"))
+                // MARK: - СЕРТИФИКАТТАР
+                sectionCard(
+                    title: "СЕРТИФИКАТТАР",
+                    content: teacher.safeCertificatesText
+                )
 
-                sectionCard(title: "ӘЛЕУМЕТТІК ЖЕЛІЛЕР", content: teacher.safeSocialLinks.isEmpty ? "Мәлімет жоқ" : teacher.safeSocialLinks.joined(separator: "\n"))
+                // MARK: - ӘЛЕУМЕТТІК ЖЕЛІЛЕР
+                sectionCard(
+                    title: "ӘЛЕУМЕТТІК ЖЕЛІЛЕР",
+                    content: teacher.safeSocialLinksText
+                )
 
                 Spacer()
             }
@@ -89,7 +128,10 @@ struct AdminTeacherDetailView: View {
         }
         .background(Color.mintSoft.opacity(0.25))
         .navigationTitle("Мұғалім профилі")
-    }
+        .onAppear {
+            print("🔵 ADMIN achievements:", teacher.achievements ?? "nil")
+        }
+    } // ← ← ← МІНЕ ОСЫ `}` ЖЕТПЕЙ ТҰРҒАН
 
     // MARK: - Avatar section
     private var avatarSection: some View {
@@ -119,28 +161,23 @@ struct AdminTeacherDetailView: View {
         }
     }
 
-    // MARK: - INFO CARD (Rows)
+    // MARK: - INFO CARD
     func infoCard(title: String, items: [(String, String)]) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-
             Text(title)
                 .font(.headline)
                 .foregroundColor(.mintDark)
 
             ForEach(items, id: \.0) { item in
                 VStack(alignment: .leading, spacing: 6) {
-
                     HStack {
                         Text(item.0 + ":")
                             .foregroundColor(.mintDark)
                             .fontWeight(.medium)
-
                         Spacer()
-
                         Text(item.1)
                             .foregroundColor(.black)
                     }
-
                     Divider()
                         .background(Color.mintDark.opacity(0.25))
                 }
@@ -153,10 +190,9 @@ struct AdminTeacherDetailView: View {
         .shadow(color: Color.mintDark.opacity(0.12), radius: 12)
     }
 
-    // MARK: - SECTION CARD (ӨЗІ ТУРАЛЫ, МАРАПАТТАР, т.б.)
+    // MARK: - SECTION CARD
     func sectionCard(title: String, content: String) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-
             Text(title)
                 .font(.headline)
                 .foregroundColor(.mintDark)
@@ -164,10 +200,9 @@ struct AdminTeacherDetailView: View {
             Text(content)
                 .foregroundColor(.gray)
                 .fixedSize(horizontal: false, vertical: true)
-
         }
         .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)  // ← МІНЕ ОСЫ СОЛҒА ҚОЯДЫ
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
         .cornerRadius(26)
         .shadow(color: Color.mintDark.opacity(0.12), radius: 12)

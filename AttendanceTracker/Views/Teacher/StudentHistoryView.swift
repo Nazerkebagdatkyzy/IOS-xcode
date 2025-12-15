@@ -13,6 +13,9 @@ struct StudentHistoryView: View {
 
     @State private var records: [Attendance] = []
 
+    @State private var classDays: [Date] = []
+    @State private var studentRecords: [Date: Attendance] = [:]
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
@@ -43,22 +46,26 @@ struct StudentHistoryView: View {
                     .font(.headline)
 
                 VStack(spacing: 12) {
-                    ForEach(records, id: \.objectID) { rec in
+
+                    ForEach(classDays, id: \.self) { day in
+
+                        let record = studentRecords[day]
+                        let isPresent = record?.isPresent ?? false
+
                         HStack {
-                            Text(dateFormat(rec.date ?? Date()))
-                                .font(.body)
+                            Text(dateFormat(day))
 
                             Spacer()
 
-                            Text(rec.isPresent ? "Келді" : "Келмеді")
-                                .font(.body.bold())
-                                .foregroundColor(rec.isPresent ? .green : .red)
+                            Text(isPresent ? "Келді" : "Келмеді")
+                                .foregroundColor(isPresent ? .green : .red)
+                                .bold()
                         }
                         .padding()
                         .background(Color(.systemBackground))
                         .cornerRadius(12)
-                        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
                     }
+
 
                     if records.isEmpty {
                         Text("Мәлімет жоқ")
@@ -67,6 +74,7 @@ struct StudentHistoryView: View {
                             .padding(.top)
                     }
                 }
+
             }
             .padding()
         }
@@ -76,22 +84,38 @@ struct StudentHistoryView: View {
 
     // MARK: - Attendance жүктеу
     private func loadHistory() {
-        let req: NSFetchRequest<Attendance> = Attendance.fetchRequest()
-        req.predicate = NSPredicate(format: "student == %@", student)
-        req.sortDescriptors = [NSSortDescriptor(key: "date", ascending: true)]
 
-        do {
-            records = try viewContext.fetch(req)
-        } catch {
-            print("⚠️ Қате:", error)
-            records = []
+        let req: NSFetchRequest<Attendance> = Attendance.fetchRequest()
+        req.predicate = NSPredicate(
+            format: "student == %@",
+            student
+        )
+        req.sortDescriptors = [
+            NSSortDescriptor(key: "date", ascending: false)
+        ]
+
+        let records = (try? viewContext.fetch(req)) ?? []
+        self.records = records
+
+        // 🔵 КҮНДЕРДІ ТЕК ATTENDANCE БАР КҮНДЕРДЕН АЛАМЫЗ
+        classDays = records.compactMap {
+            Calendar.current.startOfDay(for: $0.date ?? Date())
         }
+
+        // 🔵 Dictionary: күн → attendance
+        studentRecords = Dictionary(
+            uniqueKeysWithValues: records.map {
+                (Calendar.current.startOfDay(for: $0.date ?? Date()), $0)
+            }
+        )
     }
 
+
     // MARK: Мәндер
-    private var totalLessons: Int { records.count }
+    private var totalLessons: Int { classDays.count }
     private var presentCount: Int { records.filter { $0.isPresent }.count }
-    private var absentCount: Int { records.filter { !$0.isPresent }.count }
+    private var absentCount: Int { totalLessons - presentCount }
+
 
     // MARK: - Көмекші
     private func dateFormat(_ d: Date) -> String {

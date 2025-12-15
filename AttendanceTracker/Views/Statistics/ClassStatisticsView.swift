@@ -7,202 +7,221 @@ import SwiftUI
 import CoreData
 
 struct ClassStatisticsView: View {
+
     @Environment(\.managedObjectContext) private var viewContext
     @ObservedObject var classRoom: ClassRoom
 
-    @State private var studentStats: [(student: Student, presentCount: Int, totalDays: Int, percent: Double)] = []
+    @State private var studentStats: [(student: Student,
+                                       presentCount: Int,
+                                       totalDays: Int,
+                                       percent: Double)] = []
+
     @State private var classPercent: Double = 0.0
-    @State private var dailySummary: [(day: Date, presentCount: Int)] = []
+    @State private var selectedRange: StatRange = .week
+
+    // ======================================================
+    // MARK: - Диапазон
+    // ======================================================
+
+    enum StatRange: String, CaseIterable, Identifiable {
+        case week = "Апта"
+        case month = "Ай"
+        case quarter = "Тоқсан"
+
+        var id: String { rawValue }
+    }
+
+    // ======================================================
+    // MARK: - UI
+    // ======================================================
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 18) {
+            VStack(spacing: 16) {
 
-                // ------- Сынып атауы -------
-                Text("Сынып: \(classRoom.name ?? "—")")
-                    .font(.title2).bold()
-                    .padding(.top)
+                // 🔹 Диапазон таңдау
+                Picker("Диапазон", selection: $selectedRange) {
+                    ForEach(StatRange.allCases) { range in
+                        Text(range.rawValue).tag(range)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .onChange(of: selectedRange) { _ in
+                    computeStudentStats()
+                }
 
-                // ------- Жалпы пайызы -------
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Орташа қатысу")
+                // 🔹 Сыныптың орташа пайызы
+                VStack(spacing: 6) {
+                    Text("Сыныптың орташа қатысуы")
                         .font(.headline)
+
                     Text(percentageString(classPercent))
                         .font(.largeTitle)
                         .bold()
                         .foregroundColor(.blue)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
+                .frame(maxWidth: .infinity)
                 .background(Color(.secondarySystemBackground))
-                .cornerRadius(12)
+                .cornerRadius(14)
 
+                // 🔹 Сынып атауы
+                Text("Сынып: \(classRoom.name ?? "—")")
+                    .font(.title2)
+                    .bold()
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                // ------- Оқушылар бойынша -------
-                VStack(alignment: .leading, spacing: 10) {
+                Text("Оқушылардың қатысу статистикасы")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Text("Оқушылардың қатысу көрсеткіштері")
-                        .font(.headline)
+                // 🔹 Оқушылар
+                ForEach(studentStats, id: \.student.objectID) { item in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(item.student.name ?? "—")
+                                .font(.body)
 
-                    ForEach(studentStats, id: \.student.objectID) { item in
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(item.student.name ?? "—")
-                                Text("Келді: \(item.presentCount) / \(item.totalDays)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-                            Text(percentageString(item.percent))
-                                .bold()
-                        }
-                        .padding(10)
-                        .background(Color(.systemBackground))
-                        .cornerRadius(8)
-                        .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
-                    }
-
-                    if studentStats.isEmpty {
-                        Text("Статистика жоқ — әлі жазбалар жоқ")
-                            .foregroundColor(.gray)
-                            .italic()
-                    }
-                }
-                .padding(.horizontal)
-
-
-                // ------- Күндер бойынша -------
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Күндер бойынша қатысу")
-                        .font(.headline)
-
-                    ForEach(dailySummary, id: \.day) { item in
-                        HStack {
-                            Text(formatDate(item.day))
-                                .frame(width: 100, alignment: .leading)
-
-                            ProgressView(value: Double(item.presentCount), total: Double(maxStudents))
-                                .frame(height: 12)
-
-                            Text("\(item.presentCount)/\(maxStudents)")
+                            Text("Келді: \(item.presentCount) / \(item.totalDays)")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                                .frame(width: 70, alignment: .trailing)
                         }
-                    }
 
-                    if dailySummary.isEmpty {
-                        Text("Күндік жазбалар жоқ")
-                            .foregroundColor(.gray)
-                            .italic()
+                        Spacer()
+
+                        Text(percentageString(item.percent))
+                            .font(.headline)
+                            .foregroundColor(item.percent >= 75 ? .green : .red)
                     }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(12)
+                    .shadow(color: .black.opacity(0.05), radius: 3)
                 }
-                .padding()
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(12)
 
-                Spacer()
+                if studentStats.isEmpty {
+                    Text("Статистика жоқ")
+                        .foregroundColor(.gray)
+                        .italic()
+                        .padding(.top, 20)
+                }
             }
             .padding()
         }
         .navigationTitle("Статистика")
-        .onAppear(perform: computeStats)
-    }
-
-
-    // ======================================================
-    // MARK: - Статистика есептеу
-    // ======================================================
-
-    private func computeStats() {
-        // ---- 1. Сыныптағы студенттер ----
-        let students: [Student] = (classRoom.students as? Set<Student>)?.sorted {
-            $0.studentNumber < $1.studentNumber
-        } ?? []
-
-        // ---- 2. Attendance жазбаларын жинaу ----
-        let req: NSFetchRequest<Attendance> = Attendance.fetchRequest()
-        req.predicate = NSPredicate(format: "classRoom == %@", classRoom)
-
-        do {
-            let all = try viewContext.fetch(req)
-
-            // ---- 3. Күндерді анықтау ----
-            let days = Array(
-                Set(all.compactMap { Calendar.current.startOfDay(for: $0.date ?? Date()) })
-            ).sorted()
-
-            let totalDays = days.count
-            let studentCount = students.count
-
-            // Егер күн жоқ → статистика жоқ
-            guard totalDays > 0, studentCount > 0 else {
-                classPercent = 0
-                studentStats = []
-                dailySummary = []
-                return
-            }
-
-            // ---- 4. Күндер бойынша (dailySummary) ----
-            var dailyDict: [(Date, Int)] = []
-
-            for day in days {
-                // сол күндегі "present" саны
-                let count = all.filter {
-                    Calendar.current.startOfDay(for: $0.date ?? Date()) == day && $0.isPresent
-                }.count
-
-                dailyDict.append((day, count))
-            }
-
-            dailySummary = dailyDict
-
-            // ---- 5. Оқушы бойынша статистика ----
-            var stats: [(Student, Int, Int, Double)] = []
-            var totalPresent = 0
-
-            for st in students {
-                // Берілген студенттің қатысу саны
-                let presentCount = all.filter { $0.student == st && $0.isPresent }.count
-                totalPresent += presentCount
-
-                // Пайыздық көрсеткіш
-                let percent = (Double(presentCount) / Double(totalDays)) * 100
-
-                stats.append((st, presentCount, totalDays, percent))
-            }
-
-            studentStats = stats.sorted { $0.3 > $1.3 }
-
-            // ---- 6. Сыныптың орташа пайызы ----
-            classPercent = Double(totalPresent) /
-                           Double(totalDays * studentCount) * 100
-
-        } catch {
-            print("⚠️ ERROR:", error.localizedDescription)
+        .onAppear {
+            computeStudentStats()
         }
     }
 
+    // ======================================================
+    // MARK: - НЕГІЗГІ ЛОГИКА (ДҰРЫС)
+    // ======================================================
+
+    private func computeStudentStats() {
+
+        let students: [Student] =
+            (classRoom.students as? Set<Student>)?
+            .sorted { $0.studentNumber < $1.studentNumber } ?? []
+
+        let range = dateRange()
+
+        let req: NSFetchRequest<Attendance> = Attendance.fetchRequest()
+        req.predicate = NSPredicate(
+            format: "classRoom == %@ AND date >= %@ AND date < %@",
+            classRoom,
+            range.start as NSDate,
+            range.end as NSDate
+        )
+
+        do {
+            let records = try viewContext.fetch(req)
+
+            // 🔹 нақты өткізілген күндер
+            let days = Set(
+                records.compactMap {
+                    Calendar.current.startOfDay(for: $0.date ?? Date())
+                }
+            )
+
+            let totalDays = days.count
+            guard totalDays > 0 else {
+                studentStats = []
+                classPercent = 0
+                return
+            }
+
+            var result: [(Student, Int, Int, Double)] = []
+
+            for student in students {
+
+                // 🔹 студенттің нақты келген күндері
+                let presentDays = Set(
+                    records
+                        .filter { $0.student == student && $0.isPresent }
+                        .compactMap {
+                            Calendar.current.startOfDay(for: $0.date ?? Date())
+                        }
+                )
+
+                let presentCount = presentDays.count
+                let percent = (Double(presentCount) / Double(totalDays)) * 100
+
+                result.append((student, presentCount, totalDays, percent))
+            }
+
+            studentStats = result.sorted { $0.3 > $1.3 }
+
+            // ⭐ СЫНЫПТЫҢ ОРТАША ПАЙЫЗЫ
+            let totalPresent = result.reduce(0) { $0 + $1.1 }
+            let totalPossible = totalDays * students.count
+
+            classPercent = totalPossible > 0
+                ? (Double(totalPresent) / Double(totalPossible)) * 100
+                : 0
+
+        } catch {
+            print("❌ STAT ERROR:", error.localizedDescription)
+        }
+    }
 
     // ======================================================
     // MARK: - Көмекші функциялар
     // ======================================================
 
-    private var maxStudents: Int {
-        if let set = classRoom.students as? Set<Student> {
-            return set.count
+    private func percentageString(_ value: Double) -> String {
+        String(format: "%.1f%%", value)
+    }
+
+    private func lastAttendanceDate() -> Date {
+        let req: NSFetchRequest<Attendance> = Attendance.fetchRequest()
+        req.predicate = NSPredicate(format: "classRoom == %@", classRoom)
+        req.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
+        req.fetchLimit = 1
+
+        let last = try? viewContext.fetch(req).first?.date
+        return Calendar.current.startOfDay(for: last ?? Date())
+    }
+
+    private func dateRange() -> (start: Date, end: Date) {
+        let calendar = Calendar.current
+
+        // ✅ соңғы сақталған күнге дейін ғана
+        let end = lastAttendanceDate()
+            .addingTimeInterval(60 * 60 * 24)
+
+        let start: Date
+        switch selectedRange {
+        case .week:
+            start = calendar.date(byAdding: .day, value: -7, to: end)!
+        case .month:
+            start = calendar.date(byAdding: .month, value: -1, to: end)!
+        case .quarter:
+            start = calendar.date(byAdding: .month, value: -3, to: end)!
         }
-        return 0
-    }
 
-    private func percentageString(_ v: Double) -> String {
-        String(format: "%.1f%%", v)
-    }
-
-    private func formatDate(_ d: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "dd MMM"
-        return f.string(from: d)
+        return (start, end)
     }
 }
 
