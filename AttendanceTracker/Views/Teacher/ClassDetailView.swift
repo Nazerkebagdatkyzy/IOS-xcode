@@ -19,7 +19,6 @@ struct ClassDetailView: View {
     @State private var saving = false
     @State private var showSavedAlert = false
 
-
     // ------------------------------
     // СТУДЕНТТЕР
     // ------------------------------
@@ -88,8 +87,6 @@ struct ClassDetailView: View {
                     }
                 }
                 .disabled(saving)
-
-
             }
         }
         .navigationTitle("Attendance — \(classRoom.name ?? "")")
@@ -104,6 +101,7 @@ struct ClassDetailView: View {
                 Image(systemName: "chart.bar.fill")
             }
         }
+
     }
 
     // ------------------------------
@@ -198,7 +196,4 @@ struct ClassDetailView: View {
         }
         try? viewContext.save()
     }
-    
-
 }
-

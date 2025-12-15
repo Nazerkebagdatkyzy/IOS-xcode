@@ -1,9 +1,3 @@
-//
-//  StudentAttendanceRow.swift
-//  AttendanceTracker
-//
-//  Created by Nazerke Bagdatkyzy on 15.12.2025.
-//
 
 import SwiftUI
 import CoreData
@@ -53,7 +47,9 @@ struct StudentAttendanceRow: View {
                 }
             }
 
-            NavigationLink(destination: StudentHistoryView(student: student)) {
+            NavigationLink(
+                destination: StudentHistoryView(student: student)
+            ) {
                 Text("Ақпарат")
                     .font(.headline)
                     .foregroundColor(.white)
@@ -62,6 +58,7 @@ struct StudentAttendanceRow: View {
                     .background(Color.blue)
                     .cornerRadius(10)
             }
+
 
             Divider()
         }

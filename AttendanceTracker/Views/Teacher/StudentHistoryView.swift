@@ -18,64 +18,51 @@ struct StudentHistoryView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
+            VStack(spacing: 12) {
 
-                // 🔵 Оқушы аты
-                Text(student.name ?? "Оқушы")
-                    .font(.largeTitle)
-                    .bold()
-                    .padding(.top)
+                ForEach(records, id: \.objectID) { rec in
 
-                // 🔵 Қатысу қорытындысы
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Қатысу қорытындысы")
-                        .font(.title2).bold()
+                    VStack(alignment: .leading, spacing: 6) {
 
-                    Text("Қатысқан күндер: \(presentCount)")
-                    Text("Қатыспаған күндер: \(absentCount)")
-                    Text("Барлық сабақ күндері: \(totalLessons)")
-                }
-                .padding()
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(14)
-
-                Divider().padding(.vertical, 4)
-
-                // 🔵 Сабақ күндері бойынша тізім
-                Text("Күндер бойынша")
-                    .font(.headline)
-
-                VStack(spacing: 12) {
-
-                    ForEach(classDays, id: \.self) { day in
-
-                        let record = studentRecords[day]
-                        let isPresent = record?.isPresent ?? false
-
+                        // 📅 КҮН + STATUS
                         HStack {
-                            Text(dateFormat(day))
+                            Text(dateFormat(rec.date ?? Date()))
+                                .font(.body)
 
                             Spacer()
 
-                            Text(isPresent ? "Келді" : "Келмеді")
-                                .foregroundColor(isPresent ? .green : .red)
-                                .bold()
+                            Text(rec.isPresent ? "Келді" : "Келмеді")
+                                .font(.body.bold())
+                                .foregroundColor(rec.isPresent ? .green : .red)
                         }
-                        .padding()
-                        .background(Color(.systemBackground))
-                        .cornerRadius(12)
-                    }
 
+                        // ⏱ КЕШІГУ
+                        if rec.tardyMinutes > 0 {
+                            Text("Кешігу: \(rec.tardyMinutes) мин")
+                                .font(.caption)
+                                .foregroundColor(.orange)
 
-                    if records.isEmpty {
-                        Text("Мәлімет жоқ")
-                            .foregroundColor(.gray)
-                            .italic()
-                            .padding(.top)
+                            if let reason = rec.tardyReason, !reason.isEmpty {
+                                Text("Себебі: \(reason)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
                     }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(12)
+                    .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
                 }
 
+                if records.isEmpty {
+                    Text("Мәлімет жоқ")
+                        .foregroundColor(.gray)
+                        .italic()
+                        .padding(.top)
+                }
             }
+
             .padding()
         }
         .navigationTitle("Қатысу тарихы")
