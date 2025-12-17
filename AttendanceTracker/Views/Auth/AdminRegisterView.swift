@@ -156,4 +156,36 @@ struct AdminRegisterView: View {
         try? viewContext.save()
         success = true
     }
+    // MARK: - Helpers
+
+    func schoolName(for id: String) -> String {
+        let req: NSFetchRequest<School> = School.fetchRequest()
+        req.predicate = NSPredicate(format: "id == %@", id)
+        return (try? viewContext.fetch(req).first)?.name ?? id
+    }
+
+    func loadCities() -> [String] {
+        let req: NSFetchRequest<School> = School.fetchRequest()
+        let schools = (try? viewContext.fetch(req)) ?? []
+        return Array(Set(schools.map { $0.city ?? "" })).sorted()
+    }
+
+    func loadRegions(for city: String) -> [String] {
+        let req: NSFetchRequest<School> = School.fetchRequest()
+        req.predicate = NSPredicate(format: "city == %@", city)
+        let schools = (try? viewContext.fetch(req)) ?? []
+        return Array(Set(schools.map { $0.region ?? "" })).sorted()
+    }
+
+    func loadSchools(for city: String, region: String) -> [String] {
+        let req: NSFetchRequest<School> = School.fetchRequest()
+        req.predicate = NSPredicate(
+            format: "city == %@ AND region == %@", city, region
+        )
+        let schools = (try? viewContext.fetch(req)) ?? []
+        return schools.map { $0.id ?? "" }
+    }
+
+    
 }
+

@@ -112,42 +112,18 @@ struct TeacherLoginView: View {
                     // ============================================================
                     VStack(spacing: 14) {
 
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Email")
-                                .foregroundColor(.white.opacity(0.85))
-                                .font(.headline)
+                        TextField("Email", text: $email)
+                            .keyboardType(.emailAddress)
+                            .autocapitalization(.none)
+                            .padding()
+                            .background(Color(#colorLiteral(red: 0.85, green: 1.0, blue: 0.96, alpha: 1)))
+                            .cornerRadius(12)
 
-                            TextField("Email", text: $email)
-                                .keyboardType(.emailAddress)
-                                .autocapitalization(.none)
-                                .foregroundColor(.white) // ✅ ақ текст
-                                .padding()
-                                .background(Color.white.opacity(0.12)) // ✅ дәл сол фон
-                                .cornerRadius(14)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 1) // ✅ border
-                                )
-                        }
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Құпия сөз")
-                                .foregroundColor(.white.opacity(0.85))
-                                .font(.headline)
-
-                            SecureField("Құпия сөз", text: $password)
-                                .foregroundColor(.white) // ✅ ақ текст
-                                .padding()
-                                .background(Color.white.opacity(0.12))
-                                .cornerRadius(14)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 1)
-                                )
-                        }
+                        SecureField("Құпия сөз", text: $password)
+                            .padding()
+                            .background(Color(#colorLiteral(red: 0.81, green: 1.0, blue: 0.94, alpha: 1)))
+                            .cornerRadius(12)
                     }
-
-
 
                     // ============================================================
                     // LOGIN BUTTON
@@ -225,3 +201,4 @@ struct TeacherLoginView: View {
         }
     }
 }
+

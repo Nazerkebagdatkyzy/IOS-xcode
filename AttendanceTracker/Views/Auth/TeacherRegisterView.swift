@@ -12,8 +12,6 @@ struct TeacherRegisterView: View {
     @State private var selectedCity = ""
     @State private var selectedRegion = ""
     @State private var selectedSchoolID = ""
-    @State private var selectedSchoolName = ""
-
 
     @State private var regions: [String] = []
     @State private var schools: [String] = []
@@ -87,13 +85,10 @@ struct TeacherRegisterView: View {
                     if !schools.isEmpty {
                         EmeraldPicker(
                             title: "Мектеп",
-                            selection: $selectedSchoolName,
-                            options: schools
+                            selection: $selectedSchoolID,
+                            options: schools,
+                            displayMap: { schoolName(for: $0) }
                         )
-                        .onChange(of: selectedSchoolName) {
-                            selectedSchoolID = schoolID(forName: selectedSchoolName)
-                        }
-
                     }
 
                     // REGISTER BUTTON
@@ -131,17 +126,7 @@ struct TeacherRegisterView: View {
 
     // MARK: Register
     func registerTeacher() {
-
-        print("DEBUG 👉", name, email, password, selectedCity, selectedRegion, selectedSchoolID)
-
-        guard
-            !name.isEmpty,
-            !email.isEmpty,
-            !password.isEmpty,
-            !selectedCity.isEmpty,
-            !selectedRegion.isEmpty,
-            !selectedSchoolID.isEmpty
-        else {
+        guard !name.isEmpty, !email.isEmpty, !password.isEmpty, !selectedSchoolID.isEmpty else {
             showError = true
             return
         }
@@ -151,7 +136,7 @@ struct TeacherRegisterView: View {
 
         guard let foundSchool = try? viewContext.fetch(req).first else {
             showError = true
-            print("❌ School not found by ID")
+            print("❌ School not found")
             return
         }
 
@@ -168,16 +153,6 @@ struct TeacherRegisterView: View {
         try? viewContext.save()
         showSuccess = true
     }
-
-    
-    func schoolID(forName name: String) -> String {
-        let req: NSFetchRequest<School> = School.fetchRequest()
-        req.predicate = NSPredicate(format: "name == %@", name)
-
-        let school = try? viewContext.fetch(req).first
-        return school?.id ?? ""
-    }
-
 }
 
 //
@@ -230,51 +205,6 @@ struct EmeraldSecureField: View {
                     RoundedRectangle(cornerRadius: 14)
                         .stroke(Color.white.opacity(0.25), lineWidth: 1)
                 )
-        }
-    }
-}
-
-struct EmeraldPicker: View {
-    let title: String
-    @Binding var selection: String
-    let options: [String]
-    var displayMap: ((String) -> String)? = nil
-
-    var body: some View {
-
-        VStack(alignment: .leading, spacing: 6) {
-
-            Text(title)
-                .foregroundColor(.white.opacity(0.85))
-                .font(.headline)
-
-            Menu {
-                ForEach(options, id: \.self) { item in
-                    Button { selection = item } label: {
-                        Text(displayMap?(item) ?? item)
-                    }
-                }
-            } label: {
-                HStack {
-                    Text(
-                        selection.isEmpty
-                        ? "Таңдаңыз"
-                        : (displayMap?(selection) ?? selection)
-                    )
-                    .foregroundColor(.white.opacity(selection.isEmpty ? 0.5 : 1))
-
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .foregroundColor(.white.opacity(0.8))
-                }
-                .padding()
-                .background(Color.white.opacity(0.12))
-                .cornerRadius(14)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.white.opacity(0.25), lineWidth: 1)
-                )
-            }
         }
     }
 }
