@@ -2,113 +2,82 @@
 //  StudentHistoryView.swift
 //  AttendanceTracker
 //
-//  Created by Nazerke Bagdatkyzy on 11.12.2025.
-//
+
 import SwiftUI
 import CoreData
 
 struct StudentHistoryView: View {
-    @Environment(\.managedObjectContext) private var viewContext
+
     @ObservedObject var student: Student
+    @Environment(\.managedObjectContext) private var viewContext
 
     @State private var records: [Attendance] = []
 
-    @State private var classDays: [Date] = []
-    @State private var studentRecords: [Date: Attendance] = [:]
+    // MARK: - Summary
+    private var presentCount: Int {
+        records.filter { $0.isPresent && $0.tardyMinutes == 0 }.count
+    }
+
+    private var tardyCount: Int {
+        records.filter { $0.tardyMinutes > 0 }.count
+    }
+
+    private var absentCount: Int {
+        records.filter { !$0.isPresent }.count
+    }
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 18) {
 
-                ForEach(records, id: \.objectID) { rec in
+                // 🔵 Аты
+                Text(student.name ?? "Оқушы")
+                    .font(.largeTitle)
+                    .bold()
 
-                    VStack(alignment: .leading, spacing: 6) {
+                // 🔵 Summary
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Қатысу қорытындысы")
+                        .font(.title2)
+                        .bold()
 
-                        // 📅 КҮН + STATUS
-                        HStack {
-                            Text(dateFormat(rec.date ?? Date()))
-                                .font(.body)
-
-                            Spacer()
-
-                            Text(rec.isPresent ? "Келді" : "Келмеді")
-                                .font(.body.bold())
-                                .foregroundColor(rec.isPresent ? .green : .red)
-                        }
-
-                        // ⏱ КЕШІГУ
-                        if rec.tardyMinutes > 0 {
-                            Text("Кешігу: \(rec.tardyMinutes) мин")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-
-                            if let reason = rec.tardyReason, !reason.isEmpty {
-                                Text("Себебі: \(reason)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                    .padding()
-                    .background(Color(.systemBackground))
-                    .cornerRadius(12)
-                    .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+                    Text("Келген: \(presentCount)")
+                    Text("Кешіккен: \(tardyCount)")
+                    Text("Келмеген: \(absentCount)")
                 }
+                .padding()
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(12)
 
-                if records.isEmpty {
-                    Text("Мәлімет жоқ")
-                        .foregroundColor(.gray)
-                        .italic()
-                        .padding(.top)
+                Divider()
+
+                // 🔵 History
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Қатысу тарихы")
+                        .font(.title2)
+                        .bold()
+
+                    ForEach(records, id: \.objectID) { att in
+                        AttendanceHistoryRow(attendance: att)
+                    }
                 }
             }
-
             .padding()
         }
-        .navigationTitle("Қатысу тарихы")
-        .onAppear(perform: loadHistory)
+        .onAppear {
+            fetchHistory()
+        }
+        .navigationTitle("History")
     }
 
-    // MARK: - Attendance жүктеу
-    private func loadHistory() {
-
+    // MARK: - Fetch
+    private func fetchHistory() {
         let req: NSFetchRequest<Attendance> = Attendance.fetchRequest()
-        req.predicate = NSPredicate(
-            format: "student == %@",
-            student
-        )
+        req.predicate = NSPredicate(format: "student == %@", student)
         req.sortDescriptors = [
             NSSortDescriptor(key: "date", ascending: false)
         ]
 
-        let records = (try? viewContext.fetch(req)) ?? []
-        self.records = records
-
-        // 🔵 КҮНДЕРДІ ТЕК ATTENDANCE БАР КҮНДЕРДЕН АЛАМЫЗ
-        classDays = records.compactMap {
-            Calendar.current.startOfDay(for: $0.date ?? Date())
-        }
-
-        // 🔵 Dictionary: күн → attendance
-        studentRecords = Dictionary(
-            uniqueKeysWithValues: records.map {
-                (Calendar.current.startOfDay(for: $0.date ?? Date()), $0)
-            }
-        )
-    }
-
-
-    // MARK: Мәндер
-    private var totalLessons: Int { classDays.count }
-    private var presentCount: Int { records.filter { $0.isPresent }.count }
-    private var absentCount: Int { totalLessons - presentCount }
-
-
-    // MARK: - Көмекші
-    private func dateFormat(_ d: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "dd MMM yyyy"
-        return f.string(from: d)
+        records = (try? viewContext.fetch(req)) ?? []
     }
 }
-
