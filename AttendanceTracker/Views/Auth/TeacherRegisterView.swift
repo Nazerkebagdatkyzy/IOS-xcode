@@ -12,6 +12,8 @@ struct TeacherRegisterView: View {
     @State private var selectedCity = ""
     @State private var selectedRegion = ""
     @State private var selectedSchoolID = ""
+    @State private var selectedSchoolName = ""
+
 
     @State private var regions: [String] = []
     @State private var schools: [String] = []
@@ -85,10 +87,13 @@ struct TeacherRegisterView: View {
                     if !schools.isEmpty {
                         EmeraldPicker(
                             title: "Мектеп",
-                            selection: $selectedSchoolID,
-                            options: schools,
-                            displayMap: { schoolName(for: $0) }
+                            selection: $selectedSchoolName,
+                            options: schools
                         )
+                        .onChange(of: selectedSchoolName) {
+                            selectedSchoolID = schoolID(forName: selectedSchoolName)
+                        }
+
                     }
 
                     // REGISTER BUTTON
@@ -126,7 +131,17 @@ struct TeacherRegisterView: View {
 
     // MARK: Register
     func registerTeacher() {
-        guard !name.isEmpty, !email.isEmpty, !password.isEmpty, !selectedSchoolID.isEmpty else {
+
+        print("DEBUG 👉", name, email, password, selectedCity, selectedRegion, selectedSchoolID)
+
+        guard
+            !name.isEmpty,
+            !email.isEmpty,
+            !password.isEmpty,
+            !selectedCity.isEmpty,
+            !selectedRegion.isEmpty,
+            !selectedSchoolID.isEmpty
+        else {
             showError = true
             return
         }
@@ -136,7 +151,7 @@ struct TeacherRegisterView: View {
 
         guard let foundSchool = try? viewContext.fetch(req).first else {
             showError = true
-            print("❌ School not found")
+            print("❌ School not found by ID")
             return
         }
 
@@ -153,6 +168,16 @@ struct TeacherRegisterView: View {
         try? viewContext.save()
         showSuccess = true
     }
+
+    
+    func schoolID(forName name: String) -> String {
+        let req: NSFetchRequest<School> = School.fetchRequest()
+        req.predicate = NSPredicate(format: "name == %@", name)
+
+        let school = try? viewContext.fetch(req).first
+        return school?.id ?? ""
+    }
+
 }
 
 //
